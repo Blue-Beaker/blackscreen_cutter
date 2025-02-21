@@ -112,7 +112,7 @@ class VideoCutter:
         info=pymediainfo.MediaInfo.parse(videoname).video_tracks[0] # type: ignore
         data=info.to_data()
         if(data['frame_rate_mode']!='CFR'):
-            print("Variable frame rate is not supported!")
+            print("Variable frame rate is not supported! Please convert it to Constant frame rate at first! \n不支持可变帧速率的视频,请先转码成固定帧速率")
             return
         self.fps=float(data['frame_rate'])
 
@@ -128,7 +128,7 @@ class VideoCutter:
         cv2.destroyAllWindows()
 
 if(sys.argv.__len__()<2):
-    print("Usage: cut.py [VIDEO FILE]")
+    print("Usage: cut.py [VIDEO FILE]\n用法: cut.py [视频文件]")
     exit()
 try:
     print(f"Thresold: {thr1,thr2}")
