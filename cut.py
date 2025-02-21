@@ -58,7 +58,7 @@ class VideoCutter:
         return self.get_timestamp(frame/self.fps)
 
     def get_timestamp(self,time:float):
-        return f"{"{:02d}".format(math.floor(time/3600))}:{"{:02d}".format(math.floor(time/60)%60)}:{"{:02d}".format(math.floor(time)%60)},{"{:03d}".format(math.floor(time*1000)%1000)}"
+        return f"{'{:02d}'.format(math.floor(time/3600))}:{'{:02d}'.format(math.floor(time/60)%60)}:{'{:02d}'.format(math.floor(time)%60)},{'{:03d}'.format(math.floor(time*1000)%1000)}"
     
     def end_subtitle(self):
         lines="\n".join([
