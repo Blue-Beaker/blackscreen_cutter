@@ -7,7 +7,7 @@ import math
 import os,sys,cv2,pymediainfo
 import numpy as np
 
-os.chdir(sys.path[0])
+# os.chdir(sys.path[0])
 
 SHOW=False #是否要在处理时显示帧. 会变慢!
 #Whether to show image when processing. Slows down!

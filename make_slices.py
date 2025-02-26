@@ -7,7 +7,7 @@ MAX_LENGTH=2000 #每段最大长度,单位ms. 设置0禁用
 
 END_OFFSET=-400 #每段末位置偏移,单位ms
 
-os.chdir(sys.path[0])
+# os.chdir(sys.path[0])
 
 class Section:
     def __init__(self,start:int,end:int) -> None:
@@ -79,7 +79,7 @@ def cut_video(input:str,output:str,section:Section):
 def dump_section(section:Section,replacement:str)->str:
     return replacement.replace('{starttime}',to_hhmmssms_time(section.start)).replace('{endtime}',to_hhmmssms_time(section.end)).replace('{length}',to_hhmmssms_time(section.end-section.start))
 
-flag_dumponly=False
+flag_dump=False
 filepath=""
 dump_template=None
 try:
@@ -90,7 +90,7 @@ try:
             if(arg.startswith('--end_offset=')):
                 END_OFFSET=int(arg.split('=')[1])
             if(arg.startswith('--dump=')):
-                flag_dumponly=True
+                flag_dump=True
                 with open(arg.split('=')[1],'r') as dumpTemplate:
                     dump_template=dumpTemplate.read()
         else:
@@ -106,7 +106,7 @@ try:
 
     with open(srtpath,"r") as srtFile:
         sections=parse_srt(srtFile.readlines())
-        if(sections.__len__()>0):
+        if(sections.__len__()>0 and not flag_dump):
             os.makedirs(outFolder,exist_ok=True)
         digits=math.ceil(math.log(sections.__len__(),10))
         formatStr='{:0'+str(digits)+'d}'
@@ -117,7 +117,7 @@ try:
             if(MAX_LENGTH>0):
                 section.start=max(section.start,section.end-MAX_LENGTH)
             if(section.start<section.end):
-                if(not flag_dumponly):
+                if(not flag_dump):
                     cut_video(filepath,os.path.join(outFolder,f"{formatStr.format(i)}.mkv"),section=section)
                 elif dump_template:
                     print(dump_section(section,dump_template))
