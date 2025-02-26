@@ -1,3 +1,3 @@
-<entry in="{starttime}" out="{endtime}" producer="chain5">
+<entry in="{starttime}" out="{endtime}" producer="chain3">
 <property name="kdenlive:id">4</property>
 </entry>
