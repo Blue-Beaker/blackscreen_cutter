@@ -13,7 +13,7 @@ from threading import Thread
 
 # os.chdir(sys.path[0])
 
-THREADS=8 #线程数量
+THREADS=3 #线程数量 不是越多越好 建议自己用不同的值测试 选择预计剩余时间最短者
 
 SHOW=False #是否要在处理时显示帧. 会变慢!
 #Whether to show image when processing. Slows down!
@@ -132,9 +132,12 @@ class VideoCutter:
             self.uncompletedThreads.append(thread)
             lastTimes[thread.threadID]=time.time()
             lastFrames[thread.threadID]=thread.curFrame
+            
+        halted=False
         #监视线程
         try:
             while self.uncompletedThreads:
+                print("")
                 for thread in self.threads:
                     if thread.progress>=1 and thread in self.uncompletedThreads:
                         self.uncompletedThreads.remove(thread)
@@ -145,14 +148,15 @@ class VideoCutter:
                     
                     frames_per_second=(thread.curFrame-lastFrame)/(newTime-lastTime) if newTime>lastTime else 0
                     
-                    estimated = f"{(thread.endFrame-thread.curFrame)/frames_per_second:.1f}" if frames_per_second>0 else "INFINITE!"
+                    estimated = f"{(thread.endFrame-thread.curFrame)/frames_per_second:.1f}s" if frames_per_second>0 else "INFINITE!"
                     
                     lastTimes[thread.threadID]=newTime
                     lastFrames[thread.threadID]=thread.curFrame
                     
-                    print(f"Thread {thread.threadID}: frames={thread.curFrame}/{thread.endFrame}\t{thread.progress*100:.2f}%\tmean={thread.lastMean:.1f}\tfps={frames_per_second:.1f},estimated={estimated}s")
+                    print(f"Thread {thread.threadID}: frames={thread.curFrame}/{thread.endFrame}\t{thread.progress*100:.2f}%\tmean={thread.lastMean:.1f}\tfps={frames_per_second:.1f}\testimated={estimated}")
                 time.sleep(1)
         except:
+            halted=True
             print("Halted! exiting threads")
             traceback.print_exc()
             for thread in self.threads:
@@ -162,7 +166,8 @@ class VideoCutter:
             self.startFrames.extend(thread.startFrames)
             self.endFrames.extend(thread.endFrames)
         print(self.startFrames,self.endFrames)
-        self.write_to_subtitle()
+        if not halted:
+            self.write_to_subtitle()
         
     def write_to_subtitle(self):
         id=0
