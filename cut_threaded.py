@@ -171,10 +171,12 @@ class VideoCutter:
         
     def write_to_subtitle(self):
         id=0
-        
         with open(self.videoFile+".srt","w") as subtitleFile:
             if not self.startFrames or not self.endFrames:
                 return
+            
+            if(self.startFrames[0]<self.endFrames[0]):
+                self.startFrames.insert(0,0)
                 
             while id<len(self.startFrames) and id<len(self.endFrames):
                 
