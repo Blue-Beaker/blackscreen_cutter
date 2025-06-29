@@ -3,8 +3,10 @@
 #Usage: cut.py [VIDEO FILE]
 #用法: cut.py [视频文件]
 
+import datetime
 import math
 import os,sys,cv2,pymediainfo
+import traceback
 import time
 import numpy as np
 from threading import Thread
@@ -114,7 +116,6 @@ class VideoWorkerThreaded(Thread):
         if SHOW:
             cv2.imshow('Thresh', Thresh)
         return mean
-
 class VideoCutter:
     def process(self):
         frames_per_thread=self.totalFrames//THREADS
@@ -123,21 +124,37 @@ class VideoCutter:
             thread=VideoWorkerThreaded(self.videoFile,i*frames_per_thread-(i>0),min((i+1)*frames_per_thread,self.totalFrames),i,self.fps)
             self.threads.append(thread)
             
+        lastTimes={}
+        lastFrames={}
         #启动线程
         for thread in self.threads:
             thread.start()
             self.uncompletedThreads.append(thread)
-            
+            lastTimes[thread.threadID]=time.time()
+            lastFrames[thread.threadID]=thread.curFrame
         #监视线程
         try:
             while self.uncompletedThreads:
                 for thread in self.threads:
                     if thread.progress>=1 and thread in self.uncompletedThreads:
                         self.uncompletedThreads.remove(thread)
-                    print(f"Thread {thread.threadID}: frames={thread.curFrame}/{thread.endFrame} mean={thread.lastMean}")
+                        
+                    lastTime=lastTimes[thread.threadID]
+                    lastFrame=lastFrames[thread.threadID]
+                    newTime=time.time()
+                    
+                    frames_per_second=(thread.curFrame-lastFrame)/(newTime-lastTime) if newTime>lastTime else 0
+                    
+                    estimated = f"{(thread.endFrame-thread.curFrame)/frames_per_second:.1f}" if frames_per_second>0 else "INFINITE!"
+                    
+                    lastTimes[thread.threadID]=newTime
+                    lastFrames[thread.threadID]=thread.curFrame
+                    
+                    print(f"Thread {thread.threadID}: frames={thread.curFrame}/{thread.endFrame}\t{thread.progress*100:.2f}%\tmean={thread.lastMean:.1f}\tfps={frames_per_second:.1f},estimated={estimated}s")
                 time.sleep(1)
-        except KeyboardInterrupt as e:
+        except:
             print("Halted! exiting threads")
+            traceback.print_exc()
             for thread in self.threads:
                 thread.finished=True
         
@@ -151,7 +168,16 @@ class VideoCutter:
         id=0
         
         with open(self.videoFile+".srt","w") as subtitleFile:
-            for start,end in zip(self.startFrames,self.endFrames):
+            if not self.startFrames or not self.endFrames:
+                return
+                
+            while id<len(self.startFrames) and id<len(self.endFrames):
+                
+                while (self.startFrames[id]>self.endFrames[id]):
+                    self.endFrames.pop(id)
+                    
+                start=self.startFrames[id]
+                end=self.endFrames[id]
                 for line in self.gen_subtitle_line(id,start,end):
                     subtitleFile.write(line+"\n")
                 id=id+1
@@ -164,7 +190,7 @@ class VideoCutter:
             str(id),
             f"{self.get_timestamp_by_frame(start_frame)} --> {self.get_timestamp_by_frame(end_frame)}",
             f"#{id}",
-            "\n"
+            ""
         ]
 
     def __init__(self,videoname):
