@@ -175,7 +175,7 @@ class VideoCutter:
             if not self.startFrames or not self.endFrames:
                 return
             
-            if(self.startFrames[0]<self.endFrames[0]):
+            if(self.startFrames[0]>self.endFrames[0]):
                 self.startFrames.insert(0,0)
                 
             while id<len(self.startFrames) and id<len(self.endFrames):
@@ -185,7 +185,7 @@ class VideoCutter:
                     
                 start=self.startFrames[id]
                 end=self.endFrames[id]
-                for line in self.gen_subtitle_line(id,start,end):
+                for line in self.gen_subtitle_line(id+1,start,end):
                     subtitleFile.write(line+"\n")
                 id=id+1
 
