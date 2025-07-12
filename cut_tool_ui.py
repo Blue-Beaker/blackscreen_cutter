@@ -256,7 +256,12 @@ class InputFileItem(QWidget):
         layout.addWidget(self.label,0,0,1,4)
         
         self.progress=QProgressBar()
-        self.progress.setFormat("%s%%")
+        self.progress.setTextVisible(False)
+        self.progress.setFormat('%v/%m')
+        self.progress.setMinimum(0)
+        self.progress.setMaximum(100)
+        self.progress.setValue(0)
+        
         layout.addWidget(self.progress,1,0,1,5)
         
         self.removeButton=QToolButton()
@@ -268,9 +273,6 @@ class InputFileItem(QWidget):
         line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
         line.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
         layout.addWidget(line,2,0,1,5)
-        
-        self.progress.setMinimum(0)
-        self.progress.setMaximum(100)
         
     def setDisabled(self,disabled:bool):
         self.removeButton.setDisabled(disabled)
