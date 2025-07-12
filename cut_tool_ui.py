@@ -250,7 +250,10 @@ class InputFileItem(QWidget):
         self.filePath=filePath
         layout=QGridLayout()
         self.setLayout(layout)
-        layout.addWidget(QLabel(os.path.basename(filePath)),0,0,1,5)
+        label=QLabel(os.path.basename(filePath))
+        label.setToolTip(self.filePath)
+        
+        layout.addWidget(label,0,0,1,5)
         self.progress=QProgressBar()
         layout.addWidget(self.progress,1,0,1,5)
         self.progress.setMinimum(0)
@@ -268,8 +271,6 @@ class App(QtWidgets.QMainWindow):
         self.buttonStart:QPushButton
         self.buttonStop:QPushButton
         self.listThreads:QListWidget
-        self.progress:QProgressBar
-        self.convertInfo:QLabel
         self.statusbar:QStatusBar
         self.boxInputFiles:QVBoxLayout
         # for name,item in self.__dict__.items():

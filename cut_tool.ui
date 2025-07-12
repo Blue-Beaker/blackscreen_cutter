@@ -88,7 +88,7 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>286</width>
+           <width>578</width>
            <height>290</height>
           </rect>
          </property>
@@ -104,27 +104,6 @@
           </item>
          </layout>
         </widget>
-       </widget>
-      </item>
-     </layout>
-    </item>
-    <item>
-     <layout class="QVBoxLayout" name="currentFileSide">
-      <item>
-       <widget class="QListWidget" name="listThreads"/>
-      </item>
-      <item>
-       <widget class="QProgressBar" name="progress">
-        <property name="value">
-         <number>0</number>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="convertInfo">
-        <property name="text">
-         <string>INFO</string>
-        </property>
        </widget>
       </item>
      </layout>
