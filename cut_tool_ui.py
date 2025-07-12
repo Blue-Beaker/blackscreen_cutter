@@ -13,7 +13,7 @@ from threading import Thread
 
 from PyQt5 import QtWidgets,QtGui,QtCore,uic
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication,QPushButton,QLineEdit,QLabel,QListWidget,QProgressBar,QSpinBox,QListWidgetItem,QStatusBar,QVBoxLayout,QWidget,QGridLayout
+from PyQt5.QtWidgets import QApplication,QPushButton,QLineEdit,QLabel,QListWidget,QProgressBar,QSpinBox,QListWidgetItem,QStatusBar,QVBoxLayout,QWidget,QGridLayout,QBoxLayout,QToolButton
 
 # os.chdir(sys.path[0])
 class CutterConfig:
@@ -243,21 +243,41 @@ class VideoCutter:
         # Closes all the windows currently opened.
         cv2.destroyAllWindows()
 
-class InputFileItem(QWidget):
+class InputFileItem(QtWidgets.QFrame):
     
     def __init__(self,filePath:str):
-        super(QWidget,self).__init__()
+        super(QtWidgets.QFrame,self).__init__()
         self.filePath=filePath
         layout=QGridLayout()
         self.setLayout(layout)
-        label=QLabel(os.path.basename(filePath))
-        label.setToolTip(self.filePath)
         
-        layout.addWidget(label,0,0,1,5)
+        self.label=QLabel(os.path.basename(filePath))
+        self.label.setToolTip(self.filePath)
+        layout.addWidget(self.label,0,0,1,4)
+        
         self.progress=QProgressBar()
+        self.progress.setFormat("%s%%")
         layout.addWidget(self.progress,1,0,1,5)
+        
+        self.removeButton=QToolButton()
+        self.removeButton.setText("-")
+        self.removeButton.clicked.connect(self.remove)
+        layout.addWidget(self.removeButton,0,4,1,1)
+        
+        line=QtWidgets.QFrame()
+        line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
+        line.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
+        layout.addWidget(line,2,0,1,5)
+        
         self.progress.setMinimum(0)
         self.progress.setMaximum(100)
+        
+    def remove(self):
+        parent=self.parent()
+        if isinstance(parent,QWidget):
+            layout=parent.layout()
+            if isinstance(layout,QBoxLayout):
+                layout.removeWidget(self)
 
 class App(QtWidgets.QMainWindow):
     
@@ -283,6 +303,17 @@ class App(QtWidgets.QMainWindow):
         
         self.boxInputFiles.setAlignment(Qt.AlignmentFlag.AlignTop)
     
+        self.buttonAddFile.clicked.connect(self.pickFiles)
+    
+    def pickFiles(self,event):
+        dialog=QtWidgets.QFileDialog()
+        dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFiles)
+        dialog.setNameFilters(["Video(*.mkv *.mp4 *.flv)","All Files(*)"])
+        if dialog.exec_():
+            files=dialog.selectedFiles()
+            for file in files:
+                self.addFile(file)
+
     def dragEnterEvent(self, a0: QtGui.QDragEnterEvent) -> None:
         data=a0.mimeData()
         if not data:
