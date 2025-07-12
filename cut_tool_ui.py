@@ -13,7 +13,7 @@ from threading import Thread
 
 from PyQt5 import QtWidgets,QtGui,QtCore,uic
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication,QPushButton,QLineEdit,QLabel,QListWidget,QProgressBar,QSpinBox,QListWidgetItem,QStatusBar,QVBoxLayout,QWidget,QGridLayout,QBoxLayout,QToolButton
+from PyQt5.QtWidgets import QApplication,QPushButton,QLineEdit,QLabel,QListWidget,QProgressBar,QSpinBox,QListWidgetItem,QStatusBar,QVBoxLayout,QWidget,QGridLayout,QBoxLayout,QToolButton,QWidgetItem
 
 # os.chdir(sys.path[0])
 class CutterConfig:
@@ -243,10 +243,10 @@ class VideoCutter:
         # Closes all the windows currently opened.
         cv2.destroyAllWindows()
 
-class InputFileItem(QtWidgets.QFrame):
+class InputFileItem(QWidget):
     
     def __init__(self,filePath:str):
-        super(QtWidgets.QFrame,self).__init__()
+        super(QWidget,self).__init__()
         self.filePath=filePath
         layout=QGridLayout()
         self.setLayout(layout)
@@ -272,12 +272,23 @@ class InputFileItem(QtWidgets.QFrame):
         self.progress.setMinimum(0)
         self.progress.setMaximum(100)
         
+    def setDisabled(self,disabled:bool):
+        self.removeButton.setDisabled(disabled)
+        
     def remove(self):
         parent=self.parent()
         if isinstance(parent,QWidget):
             layout=parent.layout()
             if isinstance(layout,QBoxLayout):
                 layout.removeWidget(self)
+
+def getLayoutWidgets(layout:QBoxLayout):
+    widgets=[]
+    for i in range(layout.count()):
+        item=layout.itemAt(i)
+        if item:
+            widgets.append(item.widget())
+    return widgets
 
 class App(QtWidgets.QMainWindow):
     
@@ -339,12 +350,20 @@ class App(QtWidgets.QMainWindow):
         self.boxInputFiles.addWidget(inputFileItem)
     
     def startConvert(self):
+        for widget in getLayoutWidgets(self.boxInputFiles):
+            if(isinstance(widget,QWidget)):
+                widget.setDisabled(True)
+                
         self.buttonStart.setDisabled(True)
         self.buttonStop.setDisabled(False)
         if self.cutter and not self.cutter.finished and not self.cutter.halted:
             self.createPopupMenu()
         
     def haltConvert(self):
+        for widget in getLayoutWidgets(self.boxInputFiles):
+            if(isinstance(widget,QWidget)):
+                widget.setDisabled(False)
+                
         self.buttonStart.setDisabled(False)
         self.buttonStop.setDisabled(True)
         if self.cutter:
