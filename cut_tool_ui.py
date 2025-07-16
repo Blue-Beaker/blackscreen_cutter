@@ -471,11 +471,11 @@ class App(QtWidgets.QMainWindow):
     def haltConvert(self):
         if self.worker:
             self.worker.halt()
+        if self.thread:
+            self.thread.terminate()
         self.onFinished()
             
     def onFinished(self):
-        if self.thread:
-            self.thread.terminate()
         self.buttonStart.setDisabled(False)
         self.buttonStop.setDisabled(True)
         self.inputThreads.setDisabled(False)
@@ -484,6 +484,15 @@ class App(QtWidgets.QMainWindow):
             if(isinstance(widget,InputFileItem)):
                 widget.setDisabled(False)
                 self.queuedFiles.clear()
+                
+    def closeEvent(self,event:QtGui.QCloseEvent):
+        if self.worker:
+            self.worker.halt()
+        if self.thread:
+            self.thread.terminate()
+            while self.thread.isRunning():
+                time.sleep(0.1)
+        event.accept()
         
         
 app = QApplication(sys.argv)
