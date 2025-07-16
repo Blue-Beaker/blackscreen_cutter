@@ -119,7 +119,7 @@
           <item>
            <widget class="QLabel" name="currentFileLabel">
             <property name="text">
-             <string>空闲</string>
+             <string>Idle</string>
             </property>
            </widget>
           </item>

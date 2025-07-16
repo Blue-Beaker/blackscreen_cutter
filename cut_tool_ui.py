@@ -360,6 +360,7 @@ class Worker(QObject):
                 self.log.emit("Completed!")
             finally:
                 cutter.close()
+        self.fileChanged.emit("Idle")
         self.finished.emit()
                 
 
@@ -463,7 +464,7 @@ class App(QtWidgets.QMainWindow):
         self.logOutput.addItem(QListWidgetItem(line))
         
     def updateProgress(self,progress:float,fps:float,estimatedTime:float):
-        self.progressBar.setValue(round(progress*100))
+        self.progressBar.setValue(math.floor(progress*100))
         if self.worker:
             self.statusbar.showMessage(f"Processing fps:{fps:.1f}(avg.{fps/self.worker.threads:.1f}), Estimated:{estimatedTime:.1f}s",2147483647)
         
