@@ -4,6 +4,7 @@
 #用法: cut.py [视频文件]
 
 import datetime
+from functools import partial
 import math
 import os,sys,cv2,pymediainfo
 import traceback
@@ -12,31 +13,29 @@ import numpy as np
 from threading import Thread
 
 from PyQt5 import QtWidgets,QtGui,QtCore,uic
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication,QPushButton,QLineEdit,QLabel,QListWidget,QProgressBar,QSpinBox,QListWidgetItem,QStatusBar,QVBoxLayout,QWidget,QGridLayout,QBoxLayout,QToolButton,QWidgetItem
+from PyQt5.QtCore import Qt,QThread,QObject,pyqtSignal
+from PyQt5.QtWidgets import QApplication,QPushButton,QLineEdit,QLabel,QListWidget,QProgressBar,QSpinBox,QListWidgetItem,QStatusBar,QVBoxLayout,QWidget,QGridLayout,QBoxLayout,QToolButton,QWidgetItem,QTextEdit
 
 # os.chdir(sys.path[0])
 class CutterConfig:
-    THREADS=3 #线程数量 不是越多越好 建议自己用不同的值测试 选择预计剩余时间最短者
-
-    SHOW=False #是否要在处理时显示帧. 会变慢!
+    SHOW:bool=False #是否要在处理时显示帧. 会变慢!
     #Whether to show image when processing. Slows down!
 
-    COLOR_THRESOLD=10 #颜色判定阈值. 0~255,0=黑,255=白
+    COLOR_THRESOLD:int=10 #颜色判定阈值. 0~255,0=黑,255=白
     #Thresold to determine black color. 0~255, black = 0, white = 255
 
-    PERCENTAGE_1=99 #黑色占所选区域百分比大于此值判定开始黑屏
-    PERCENTAGE_2=98 #黑色占所选区域百分比小于此值判定结束黑屏
+    PERCENTAGE_1:float=99 #黑色占所选区域百分比大于此值判定开始黑屏
+    PERCENTAGE_2:float=98 #黑色占所选区域百分比小于此值判定结束黑屏
     
     def update(self):
         self.thr1=255-(self.PERCENTAGE_1*255/100)
         self.thr2=255-(self.PERCENTAGE_2*255/100)
 
     # 在此设置需要判定黑屏的范围
-    x1=0
-    x2=1600
-    y1=0
-    y2=900
+    x1:int=0
+    x2:int=1600
+    y1:int=0
+    y2:int=900
 
     def crop(self,frame:np.ndarray):
         return frame[self.y1:self.y2,self.x1:self.x2]
@@ -65,12 +64,35 @@ class VideoWorkerThreaded(Thread):
         self.finished=False
         self.config=config
         
+        self.lastTime:float=0.0
+        self.lastFrame:int=0
+        self.estimatedFps:float=0.0
+        self.estimatedTime:float=float("inf")
+        
+    def estimate(self):
+        newTime=time.time()
+        
+        frames_per_second=(self.curFrame-self.lastFrame)/(newTime-self.lastTime) if newTime>self.lastTime else 0
+        self.estimatedFps=frames_per_second
+        
+        self.estimatedTime = (self.endFrame-self.curFrame)/frames_per_second if frames_per_second>0 else float("inf")
+        
+        self.lastTime=newTime
+        self.lastFrame=self.curFrame
+        
     @property
     def progress(self):
         return (self.curFrame-self.startFrame)/(self.endFrame-self.startFrame)
     
     def run(self):
         self.process()
+    def printExt(self,text):
+        pass
+        
+    def print(self,text,**kwargs):
+        self.printExt(text)
+        print(text,**kwargs)
+        
     def process(self):
         while ((not self.finished) and self.cap.isOpened()):
             # 由于已经二值化,此平均值反映的是非黑色部分占总画面的比例. 
@@ -80,7 +102,7 @@ class VideoWorkerThreaded(Thread):
                 if mean>self.config.thr2: # 黑屏结束判定
                     self.last_frame_black=False
                     self.startFrames.append(self.curFrame)
-                    print(f"<-{get_timestamp(self.curFrame/self.fps)}")
+                    self.print(f"<-{get_timestamp(self.curFrame/self.fps)}")
                     
             else:
                 if mean<self.config.thr1: # 黑屏开始判定
@@ -88,7 +110,7 @@ class VideoWorkerThreaded(Thread):
                     # 如果片段一开始就是黑屏, 不额外判定
                     if self.curFrame>self.startFrame:
                         self.endFrames.append(self.curFrame)
-                        print(f"->{get_timestamp(self.curFrame/self.fps)}")
+                        self.print(f"->{get_timestamp(self.curFrame/self.fps)}")
 
             self.curFrame=self.curFrame+1
             
@@ -124,22 +146,29 @@ class VideoWorkerThreaded(Thread):
             cv2.imshow('Thresh', Thresh)
         return mean
 class VideoCutter:
+    
+    def print(self,text,**kwargs):
+        print(text,**kwargs)
+    
+    def update(self):
+        pass
+        
     def process(self):
         self.config.update()
-        frames_per_thread=self.totalFrames//self.config.THREADS
+        frames_per_thread=self.totalFrames//self.THREADS
         #为每个线程分配处理区段
-        for i in range(self.config.THREADS):
+        for i in range(self.THREADS):
             thread=VideoWorkerThreaded(self.videoFile,i*frames_per_thread-(i>0),min((i+1)*frames_per_thread,self.totalFrames),i,self.fps,self.config)
+            thread.printExt=self.print
             self.threads.append(thread)
             
-        lastTimes={}
-        lastFrames={}
         #启动线程
         for thread in self.threads:
             thread.start()
             self.uncompletedThreads.append(thread)
-            lastTimes[thread.threadID]=time.time()
-            lastFrames[thread.threadID]=thread.curFrame
+            
+            thread.lastTime=time.time()
+            thread.lastFrame=thread.curFrame
             
         self.halted=False
         #监视线程
@@ -150,18 +179,11 @@ class VideoCutter:
                     if thread.progress>=1 and thread in self.uncompletedThreads:
                         self.uncompletedThreads.remove(thread)
                         
-                    lastTime=lastTimes[thread.threadID]
-                    lastFrame=lastFrames[thread.threadID]
-                    newTime=time.time()
+                    thread.estimate()
                     
-                    frames_per_second=(thread.curFrame-lastFrame)/(newTime-lastTime) if newTime>lastTime else 0
+                    print(f"Thread {thread.threadID}: frames={thread.curFrame}/{thread.endFrame}\t{thread.progress*100:.2f}%\tmean={thread.lastMean:.1f}\tfps={thread.estimatedFps:.1f}\testimated={thread.estimatedTime:.1f}s")
                     
-                    estimated = f"{(thread.endFrame-thread.curFrame)/frames_per_second:.1f}s" if frames_per_second>0 else "INFINITE!"
-                    
-                    lastTimes[thread.threadID]=newTime
-                    lastFrames[thread.threadID]=thread.curFrame
-                    
-                    print(f"Thread {thread.threadID}: frames={thread.curFrame}/{thread.endFrame}\t{thread.progress*100:.2f}%\tmean={thread.lastMean:.1f}\tfps={frames_per_second:.1f}\testimated={estimated}")
+                self.update()
                 time.sleep(1)
         except:
             self.halt()
@@ -178,6 +200,7 @@ class VideoCutter:
         traceback.print_exc()
         for thread in self.threads:
             thread.finished=True
+        self.uncompletedThreads.clear()
         
     def write_to_subtitle(self):
         id=0
@@ -210,7 +233,7 @@ class VideoCutter:
             ""
         ]
 
-    def __init__(self,videoname,config:CutterConfig|None=None):
+    def __init__(self,videoname,threads:int=3,config:CutterConfig|None=None):
         self.subtitleLines=[]
         self.threads:list[VideoWorkerThreaded]=[]
         self.videoFile=videoname
@@ -219,6 +242,7 @@ class VideoCutter:
         self.finished=False
         self.uncompletedThreads=[]
         self.halted=False
+        self.THREADS=threads
         
         if not config:
             config=CutterConfig()
@@ -244,25 +268,18 @@ class VideoCutter:
         cv2.destroyAllWindows()
 
 class InputFileItem(QWidget):
-    
     def __init__(self,filePath:str):
         super(QWidget,self).__init__()
         self.filePath=filePath
+        self.completed=False
+        self.config=CutterConfig()
+        
         layout=QGridLayout()
         self.setLayout(layout)
         
         self.label=QLabel(os.path.basename(filePath))
         self.label.setToolTip(self.filePath)
         layout.addWidget(self.label,0,0,1,4)
-        
-        self.progress=QProgressBar()
-        self.progress.setTextVisible(False)
-        self.progress.setFormat('%v/%m')
-        self.progress.setMinimum(0)
-        self.progress.setMaximum(100)
-        self.progress.setValue(0)
-        
-        layout.addWidget(self.progress,1,0,1,5)
         
         self.removeButton=QToolButton()
         self.removeButton.setText("-")
@@ -292,9 +309,63 @@ def getLayoutWidgets(layout:QBoxLayout):
             widgets.append(item.widget())
     return widgets
 
+class Worker(QObject):
+    
+    finished=pyqtSignal()
+    update=pyqtSignal(float,float,float)
+    log=pyqtSignal(str)
+    fileChanged=pyqtSignal(str)
+    cutter:VideoCutter|None=None
+    threads:int
+    
+    def __init__(self,queuedFiles:list[InputFileItem],threads:int):
+        super(QObject,self).__init__()
+        self.queuedFiles=queuedFiles.copy()
+        self.halted=False
+        self.threads=threads
+        
+    def onUpdate(self,cutter:VideoCutter):
+        if cutter:
+            fps=0.0
+            progress=100.0
+            estimatedTime=0.0
+            for thr in cutter.threads:
+                progress=min(progress,thr.progress)
+                fps=fps+thr.estimatedFps
+                estimatedTime=max(estimatedTime,thr.estimatedTime)
+            self.update.emit(progress,fps,estimatedTime)
+    
+    def showLog(self,text:str,**kwargs):
+        self.log.emit(text)
+        print(text,**kwargs)
+        
+    def halt(self):
+        self.halted=True
+        if self.cutter:
+            self.cutter.halt()
+    def run(self):
+        for item in self.queuedFiles:
+            if self.halted:
+                return
+            try:
+                self.log.emit(item.filePath)
+                self.fileChanged.emit(item.filePath)
+                cutter=VideoCutter(item.filePath,self.threads,item.config)
+                self.cutter=cutter
+                cutter.update=partial(self.onUpdate,cutter)
+                cutter.print=self.showLog
+                cutter.process()
+                if not cutter.halted:
+                    item.completed=True
+                self.log.emit("Completed!")
+            finally:
+                cutter.close()
+        self.finished.emit()
+                
+
 class App(QtWidgets.QMainWindow):
     
-    cutter:VideoCutter|None=None
+    thread:QThread|None=None
     def __init__(self):
         super(App, self).__init__()
         uic.loadUi(os.path.join(sys.path[0],"cut_tool.ui"), self)
@@ -306,6 +377,12 @@ class App(QtWidgets.QMainWindow):
         self.listThreads:QListWidget
         self.statusbar:QStatusBar
         self.boxInputFiles:QVBoxLayout
+        self.logOutput:QListWidget
+        self.queuedFiles:list[InputFileItem]=[]
+        self.progressBar:QProgressBar
+        self.currentFileLabel:QLabel
+        self.worker:Worker|None=None
+        
         # for name,item in self.__dict__.items():
         #     print(f"{name}:{type(item).__name__}")
         self.setAcceptDrops(True)
@@ -352,28 +429,60 @@ class App(QtWidgets.QMainWindow):
         self.boxInputFiles.addWidget(inputFileItem)
     
     def startConvert(self):
+        self.queuedFiles.clear()
+        
         for widget in getLayoutWidgets(self.boxInputFiles):
-            if(isinstance(widget,QWidget)):
+            if(isinstance(widget,InputFileItem)):
                 widget.setDisabled(True)
-                
+                if not widget.completed:
+                    self.queuedFiles.append(widget)
         self.buttonStart.setDisabled(True)
         self.buttonStop.setDisabled(False)
-        if self.cutter and not self.cutter.finished and not self.cutter.halted:
-            self.createPopupMenu()
+        self.inputThreads.setDisabled(True)
+        
+        if self.worker:
+            worker=self.worker
+            if worker.cutter and not worker.cutter.finished and not worker.cutter.halted:
+                self.createPopupMenu()
+                return
+        
+        self.thread=QThread(parent=self)
+        print([file.filePath for file in self.queuedFiles])
+        self.worker=Worker(self.queuedFiles,self.inputThreads.value())
+        self.worker.moveToThread(self.thread)
+        
+        self.thread.started.connect(self.worker.run)
+        self.worker.update.connect(self.updateProgress)
+        self.worker.finished.connect(self.onFinished)
+        self.worker.fileChanged.connect(self.currentFileLabel.setText)
+        self.worker.log.connect(self.showLog)
+        
+        self.thread.start()
+        
+    def showLog(self,line:str):    
+        self.logOutput.addItem(QListWidgetItem(line))
+        
+    def updateProgress(self,progress:float,fps:float,estimatedTime:float):
+        self.progressBar.setValue(round(progress*100))
+        if self.worker:
+            self.statusbar.showMessage(f"Processing fps:{fps:.1f}(avg.{fps/self.worker.threads:.1f}), Estimated:{estimatedTime:.1f}s",2147483647)
         
     def haltConvert(self):
-        for widget in getLayoutWidgets(self.boxInputFiles):
-            if(isinstance(widget,QWidget)):
-                widget.setDisabled(False)
-                
-        self.buttonStart.setDisabled(False)
-        self.buttonStop.setDisabled(True)
-        if self.cutter:
-            self.cutter.halt()
+        if self.worker:
+            self.worker.halt()
+        self.onFinished()
             
     def onFinished(self):
+        if self.thread:
+            self.thread.terminate()
         self.buttonStart.setDisabled(False)
         self.buttonStop.setDisabled(True)
+        self.inputThreads.setDisabled(False)
+        
+        for widget in getLayoutWidgets(self.boxInputFiles):
+            if(isinstance(widget,InputFileItem)):
+                widget.setDisabled(False)
+                self.queuedFiles.clear()
         
         
 app = QApplication(sys.argv)

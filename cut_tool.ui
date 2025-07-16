@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>596</width>
+    <width>594</width>
     <height>447</height>
    </rect>
   </property>
@@ -80,6 +80,12 @@
       </item>
       <item>
        <widget class="QScrollArea" name="scrollArea">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="widgetResizable">
          <bool>true</bool>
         </property>
@@ -88,8 +94,8 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>578</width>
-           <height>290</height>
+           <width>576</width>
+           <height>83</height>
           </rect>
          </property>
          <property name="sizePolicy">
@@ -106,6 +112,31 @@
         </widget>
        </widget>
       </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_8">
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_3">
+          <item>
+           <widget class="QLabel" name="currentFileLabel">
+            <property name="text">
+             <string>空闲</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QProgressBar" name="progressBar">
+            <property name="value">
+             <number>0</number>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QListWidget" name="logOutput"/>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </item>
      </layout>
     </item>
    </layout>
@@ -115,7 +146,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>596</width>
+     <width>594</width>
      <height>32</height>
     </rect>
    </property>
