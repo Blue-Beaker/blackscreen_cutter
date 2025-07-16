@@ -357,11 +357,15 @@ class Worker(QObject):
                 cutter.process()
                 if not cutter.halted:
                     item.completed=True
-                self.log.emit("Completed!")
+                
+                self.log.emit("File completed!")
             finally:
                 cutter.close()
+                
         self.fileChanged.emit("Idle")
         self.finished.emit()
+        self.log.emit("All completed!")
+        print("All completed!")
                 
 
 class App(QtWidgets.QMainWindow):
@@ -448,7 +452,7 @@ class App(QtWidgets.QMainWindow):
                 return
         
         self.thread=QThread(parent=self)
-        print([file.filePath for file in self.queuedFiles])
+        # print([file.filePath for file in self.queuedFiles])
         self.worker=Worker(self.queuedFiles,self.inputThreads.value())
         self.worker.moveToThread(self.thread)
         
@@ -464,9 +468,12 @@ class App(QtWidgets.QMainWindow):
         self.logOutput.addItem(QListWidgetItem(line))
         
     def updateProgress(self,progress:float,fps:float,estimatedTime:float):
-        self.progressBar.setValue(math.floor(progress*100))
-        if self.worker:
-            self.statusbar.showMessage(f"Processing fps:{fps:.1f}(avg.{fps/self.worker.threads:.1f}), Estimated:{estimatedTime:.1f}s",2147483647)
+        try:
+            self.progressBar.setValue(math.floor(progress*100))
+            if self.worker:
+                self.statusbar.showMessage(f"Processing fps:{fps:.1f}(avg.{fps/self.worker.threads:.1f}), Estimated:{estimatedTime:.1f}s",2147483647)
+        except:
+            traceback.print_exc()
         
     def haltConvert(self):
         if self.worker:
@@ -476,23 +483,29 @@ class App(QtWidgets.QMainWindow):
         self.onFinished()
             
     def onFinished(self):
-        self.buttonStart.setDisabled(False)
-        self.buttonStop.setDisabled(True)
-        self.inputThreads.setDisabled(False)
-        
-        for widget in getLayoutWidgets(self.boxInputFiles):
-            if(isinstance(widget,InputFileItem)):
-                widget.setDisabled(False)
-                self.queuedFiles.clear()
+        try:
+            self.buttonStart.setDisabled(False)
+            self.buttonStop.setDisabled(True)
+            self.inputThreads.setDisabled(False)
+            
+            for widget in getLayoutWidgets(self.boxInputFiles):
+                if(isinstance(widget,InputFileItem)):
+                    widget.setDisabled(False)
+                    self.queuedFiles.clear()
+        except:
+            traceback.print_exc()
                 
     def closeEvent(self,event:QtGui.QCloseEvent):
-        if self.worker:
-            self.worker.halt()
-        if self.thread:
-            self.thread.terminate()
-            while self.thread.isRunning():
-                time.sleep(0.1)
-        event.accept()
+        try:
+            if self.worker:
+                self.worker.halt()
+            if self.thread:
+                self.thread.terminate()
+                while self.thread.isRunning():
+                    time.sleep(0.1)
+            event.accept()
+        except:
+            traceback.print_exc()
         
         
 app = QApplication(sys.argv)
