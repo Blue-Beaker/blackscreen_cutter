@@ -2,8 +2,19 @@
 
 可以帮助剪辑某些游戏的视频的工具.  
 本工具根据视频中的黑屏部分进行分段, 并生成带分段编号的字幕. 保存的字幕文件可以导入剪辑软件用于参考.  
-用法: `cut_threaded.py [视频文件]` 多线程处理, 更快  
+
+依赖:
+```
+PyQt5>=5.15.10
+pymediainfo>=6.1.0
+python3-opencv
+```
+
+GUI版本: 用Python3打开 `cut_tool_ui.py`, 拖入视频文件然后点开始即可.  
+
+命令行版本: `cut_threaded.py [视频文件]` 多线程处理, 更快  
 或者 `cut.py [视频文件]` 单线程  
+
 生成的字幕文件会生成在视频的位置, 并加上`.srt`扩展名. 单线程版处理时实时更新字幕文件, 多线程版只有处理完才会生成字幕文件.  
 
 多线程版建议根据自己设备上的测试结果调整线程数变量以获得更快处理速度.  
@@ -22,8 +33,18 @@ dump_template.txt包含了一个示例,可生成适用于kdenlive项目文件的
 
 A tool to help cutting videos of some video games.  
 This tool generates sections from black screens in a video, then saves the sections to a subtitle file. The saved subtitle file can be imported to a video editor as reference.  
-Usage: `cut_threaded.py [VIDEO FILE]` (multi-threaded, faster)  
+Requirements:
+```
+PyQt5>=5.15.10
+pymediainfo>=6.1.0
+python3-opencv
+```
+
+GUI Version: Just run `cut_tool_ui.py` with python3, then drag videos into it.  
+
+Command-line version: `cut_threaded.py [VIDEO FILE]` (multi-threaded, faster)  
 or `cut.py [VIDEO FILE]` (single-threaded)  
+
 The subtitle will be generated in where the video is at, with a `.srt` extension.  
 
 For multi-threaded version, change the 'THREADS' variable is recommended for better speed.  
