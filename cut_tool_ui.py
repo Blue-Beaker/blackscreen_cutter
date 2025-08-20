@@ -27,6 +27,24 @@ class CutterConfig:
     PERCENTAGE_1:float=99 #黑色占所选区域百分比大于此值判定开始黑屏
     PERCENTAGE_2:float=98 #黑色占所选区域百分比小于此值判定结束黑屏
     
+    def setColorThresold(self,num:int):
+        self.COLOR_THRESOLD=num
+    def setPercentage1(self,num:int):
+        self.PERCENTAGE_1=num
+        self.update()
+    def setPercentage2(self,num:int):
+        self.PERCENTAGE_2=num
+        self.update()
+        
+    def setX1(self,num:int):
+        self.x1=num
+    def setX2(self,num:int):
+        self.x2=num
+    def setY1(self,num:int):
+        self.y1=num
+    def setY2(self,num:int):
+        self.y2=num
+    
     def update(self):
         self.thr1=255-(self.PERCENTAGE_1*255/100)
         self.thr2=255-(self.PERCENTAGE_2*255/100)
@@ -268,11 +286,11 @@ class VideoCutter:
         cv2.destroyAllWindows()
 
 class InputFileItem(QWidget):
-    def __init__(self,filePath:str):
+    def __init__(self,filePath:str,config:CutterConfig=CutterConfig()):
         super(QWidget,self).__init__()
         self.filePath=filePath
         self.completed=False
-        self.config=CutterConfig()
+        self.config=config
         
         layout=QGridLayout()
         self.setLayout(layout)
@@ -387,6 +405,7 @@ class App(QtWidgets.QMainWindow):
         self.progressBar:QProgressBar
         self.currentFileLabel:QLabel
         self.worker:Worker|None=None
+        self.config:CutterConfig=CutterConfig()
         
         # for name,item in self.__dict__.items():
         #     print(f"{name}:{type(item).__name__}")
@@ -429,7 +448,7 @@ class App(QtWidgets.QMainWindow):
     
     def addFile(self,filePath:str):
         print(filePath)
-        inputFileItem=InputFileItem(filePath=filePath)
+        inputFileItem=InputFileItem(filePath=filePath,config=self.config)
         # self.listInputFiles.addItem(inputFileItem)
         self.boxInputFiles.addWidget(inputFileItem)
     
