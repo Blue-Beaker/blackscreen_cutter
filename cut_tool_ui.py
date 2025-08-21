@@ -15,7 +15,7 @@ from threading import Thread
 
 from PyQt5 import QtWidgets,QtGui,QtCore,uic
 from PyQt5.QtCore import Qt,QThread,QObject,pyqtSignal
-from PyQt5.QtWidgets import QApplication,QPushButton,QLineEdit,QLabel,QListWidget,QProgressBar,QSpinBox,QListWidgetItem,QStatusBar,QVBoxLayout,QWidget,QGridLayout,QBoxLayout,QToolButton,QWidgetItem,QTextEdit,QDoubleSpinBox
+from PyQt5.QtWidgets import QApplication,QPushButton,QLineEdit,QLabel,QListWidget,QProgressBar,QSpinBox,QListWidgetItem,QStatusBar,QVBoxLayout,QWidget,QGridLayout,QBoxLayout,QToolButton,QWidgetItem,QTextEdit,QDoubleSpinBox,QTabWidget
 
 CONFIG_FILE_PATH='cut_tool_config.json'
 
@@ -440,6 +440,7 @@ class App(QtWidgets.QMainWindow):
         self.config_color_thresold: QSpinBox
         self.config_percentage1: QDoubleSpinBox
         self.config_percentage2: QDoubleSpinBox
+        self.tabWidget: QTabWidget
         
         self.config:CutterConfig=CutterConfig()
         
@@ -454,6 +455,7 @@ class App(QtWidgets.QMainWindow):
         self.boxInputFiles.setAlignment(Qt.AlignmentFlag.AlignTop)
     
         self.buttonAddFile.clicked.connect(self.pickFiles)
+        self.tabWidget.setCurrentIndex(0)
         self.initConfig()
         self.loadConfig()
         dump(self)
