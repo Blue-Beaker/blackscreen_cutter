@@ -319,8 +319,10 @@ class InputFileItem(QWidget):
         self.filePath=filePath
         self.completed=False
         self.config=config
+        self.grid:QGridLayout
         
         layout=QGridLayout()
+        self.grid=layout
         self.setLayout(layout)
         
         self.label=QLabel(os.path.basename(filePath))
@@ -346,6 +348,15 @@ class InputFileItem(QWidget):
             layout=parent.layout()
             if isinstance(layout,QBoxLayout):
                 layout.removeWidget(self)
+
+class InputFileItemDualInputs(InputFileItem):
+    def __init__(self,filePath:str,file2Path:str,config:CutterConfig=CutterConfig()):
+        super().__init__(filePath,config)
+        self.file2Path=file2Path
+        
+        self.label2=QLabel(os.path.basename(file2Path))
+        self.label2.setToolTip(self.file2Path)
+        self.grid.addWidget(self.label2,1,0,1,4)
 
 def getLayoutWidgets(layout:QBoxLayout):
     widgets=[]
@@ -428,6 +439,7 @@ class App(QtWidgets.QMainWindow):
         self.listThreads:QListWidget
         self.statusbar:QStatusBar
         self.boxInputFiles:QVBoxLayout
+        self.boxInputFiles_2: QVBoxLayout
         self.logOutput:QListWidget
         self.queuedFiles:list[InputFileItem]=[]
         self.progressBar:QProgressBar
@@ -453,12 +465,13 @@ class App(QtWidgets.QMainWindow):
         self.buttonStop.clicked.connect(self.haltConvert)
         
         self.boxInputFiles.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.boxInputFiles_2.setAlignment(Qt.AlignmentFlag.AlignTop)
     
         self.buttonAddFile.clicked.connect(self.pickFiles)
         self.tabWidget.setCurrentIndex(0)
         self.initConfig()
         self.loadConfig()
-        dump(self)
+        # dump(self)
                 
     def pickFiles(self,event):
         dialog=QtWidgets.QFileDialog()
@@ -468,6 +481,14 @@ class App(QtWidgets.QMainWindow):
             files=dialog.selectedFiles()
             for file in files:
                 self.addFile(file)
+    def pickSingleFile(self,format=""):
+        dialog=QtWidgets.QFileDialog()
+        dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFile)
+        dialog.setNameFilters([format,"All Files(*)"])
+        if dialog.exec_():
+            selected = dialog.selectedFiles()
+            return selected[0] if selected.__len__()>0 else None
+        return None
 
     def dragEnterEvent(self, a0: QtGui.QDragEnterEvent) -> None:
         data=a0.mimeData()
@@ -481,17 +502,38 @@ class App(QtWidgets.QMainWindow):
         data=a0.mimeData()
         if not data:
             return
-        text=data.text()
+        files=data.text().split("\n")
         
-        for line in text.split("\n"):
-            if line.startswith("file://"):
-                self.addFile(line[7:])
+        if(self.tabWidget.currentIndex()==0):
+            for line in files:
+                if line.startswith("file://"):
+                    self.addFile(line[7:])
+        elif(self.tabWidget.currentIndex()==1):
+            videoPath=None
+            subtitlePath=None
+            for line in files:
+                if line.endswith(".srt"):
+                    subtitlePath=line[7:]
+                else:
+                    videoPath=line[7:]
+                        
+            if(videoPath==None):
+                videoPath=self.pickSingleFile("Video(*.mkv *.mp4 *.flv)")
+            if(subtitlePath==None):
+                subtitlePath=self.pickSingleFile("Subtitle(*.srt)")
+            if videoPath==None or subtitlePath==None:
+                return
+                        
+            inputFileItem=InputFileItemDualInputs(filePath=videoPath,file2Path=subtitlePath,config=self.config)
+            # self.listInputFiles.addItem(inputFileItem)
+            self.boxInputFiles_2.addWidget(inputFileItem)
     
     def addFile(self,filePath:str):
         print(filePath)
         inputFileItem=InputFileItem(filePath=filePath,config=self.config)
         # self.listInputFiles.addItem(inputFileItem)
         self.boxInputFiles.addWidget(inputFileItem)
+            
     
     def startConvert(self):
         self.queuedFiles.clear()
