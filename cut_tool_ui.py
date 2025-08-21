@@ -88,12 +88,16 @@ class Worker(QObject):
     finished=pyqtSignal()
     log=pyqtSignal(str)
     fileChanged=pyqtSignal(str)
+    #Progress, estimated fps, estimated time
     update=pyqtSignal(float,float,float)
-    
     
     def __init__(self):
         super().__init__()
         self.halted=False
+        
+    def showLog(self,text:str,**kwargs):
+        self.log.emit(text)
+        print(text,**kwargs)
         
     @property
     def isStarted(self):
@@ -129,10 +133,6 @@ class WorkerBlackscreenDetection(Worker):
                 fps=fps+thr.estimatedFps
                 estimatedTime=max(estimatedTime,thr.estimatedTime)
             self.update.emit(progress,fps,estimatedTime)
-    
-    def showLog(self,text:str,**kwargs):
-        self.log.emit(text)
-        print(text,**kwargs)
         
     def halt(self):
         self.halted=True
@@ -173,7 +173,7 @@ class WorkerBlackscreenDetection(Worker):
         return self.cutter!=None and self.cutter.halted
                 
 class WorkerDifferentialDetection(Worker):
-    cutter:DifferentialChecker
+    cutter:DifferentialChecker|None=None
     def __init__(self,queuedFiles:list[InputFileItemDualInputs]):
         super().__init__()
         self.queuedFiles=queuedFiles.copy()
@@ -182,13 +182,19 @@ class WorkerDifferentialDetection(Worker):
             if self.halted:
                 return
             self.convertSingle(item)
+    def onUpdate(self,cutter:DifferentialChecker):
+        if(self.isFinished):
+            self.finished.emit()
+        self.showLog(f"{cutter.estimatedFps},{cutter.estimatedTime}")
+        self.update.emit(cutter.progress,cutter.estimatedFps,cutter.estimatedTime)
     def convertSingle(self,item:InputFileItemDualInputs):
         videoFile=item.filePath
         subtitleFile=item.file2Path
-        self.fileChanged.emit()
+        self.fileChanged.emit(videoFile)
         with open(subtitleFile,"r") as f:
             lines=f.readlines()
         cutter=DifferentialChecker(videoFile,parse_srt(lines),item.config)
+        cutter.update=partial(self.onUpdate,cutter)
         cutter.process()
         
     @property
@@ -216,6 +222,9 @@ class App(QtWidgets.QMainWindow):
         self.buttonAddFile:QPushButton
         self.buttonStart:QPushButton
         self.buttonStop:QPushButton
+        self.buttonAddFile_2: QPushButton
+        self.buttonStart_2: QPushButton
+        self.buttonStop_2: QPushButton
         self.listThreads:QListWidget
         self.statusbar:QStatusBar
         self.boxInputFiles:QVBoxLayout
@@ -242,7 +251,9 @@ class App(QtWidgets.QMainWindow):
         self.buttonStop.setDisabled(True)
         
         self.buttonStart.clicked.connect(self.startConvert)
+        self.buttonStart_2.clicked.connect(self.startDifferentialCheck)
         self.buttonStop.clicked.connect(self.haltConvert)
+        self.buttonStop_2.clicked.connect(self.haltConvert)
         
         self.boxInputFiles.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.boxInputFiles_2.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -251,7 +262,7 @@ class App(QtWidgets.QMainWindow):
         self.tabWidget.setCurrentIndex(0)
         self.initConfig()
         self.loadConfig()
-        # dump(self)
+        dump(self)
                 
     def pickFiles(self,event):
         dialog=QtWidgets.QFileDialog()
@@ -304,10 +315,17 @@ class App(QtWidgets.QMainWindow):
                 else:
                     videoPath=line[7:]
                         
-            if(videoPath==None):
-                videoPath=self.pickSingleFile("Video(*.mkv *.mp4 *.flv)")
-            if(subtitlePath==None):
-                subtitlePath=self.pickSingleFile("Subtitle(*.srt)")
+            if(videoPath==None and subtitlePath!=None):
+                if(os.path.exists(subtitlePath.removesuffix(".srt"))):
+                    videoPath=subtitlePath.removesuffix(".srt")
+                else:
+                    videoPath=self.pickSingleFile("Video(*.mkv *.mp4 *.flv)")
+                
+            elif(subtitlePath==None and videoPath!=None):
+                if(os.path.exists(videoPath+".srt")):
+                    subtitlePath=videoPath+".srt"
+                else:
+                    subtitlePath=self.pickSingleFile("Subtitle(*.srt)")
             if videoPath==None or subtitlePath==None:
                 return
                         
@@ -325,7 +343,7 @@ class App(QtWidgets.QMainWindow):
         # self.listInputFiles.addItem(inputFileItem)
         self.boxInputFiles.addWidget(inputFileItem)
             
-    
+    #Start blackscreen check
     def startConvert(self):
         self.queuedFiles.clear()
         
@@ -357,7 +375,7 @@ class App(QtWidgets.QMainWindow):
         
         self.thread.start()
         
-    
+    #Start differential check
     def startDifferentialCheck(self):
         self.queuedFiles.clear()
         

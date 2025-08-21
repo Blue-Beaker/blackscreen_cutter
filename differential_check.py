@@ -21,6 +21,7 @@ class DifferentialChecker:
         self.cap = cv2.VideoCapture(videoFile)
         self.lastFrameImage:npt.NDArray|None=None
         self.finished=False
+        self.halted=False
         self.config=config
         self.sections=sections
         self.startIndex:int=0
@@ -45,25 +46,29 @@ class DifferentialChecker:
 
         
     def process(self):
-        while ((not self.finished) and self.cap.isOpened()):
-            self.seekToTime(self.sections[self.currentIndex].start+self.offset)
-            frame=self.getFrame()
-            if(self.lastFrameImage==None):
-                self.lastFrameImage=frame
-                continue
+        print(self.sections)
+        while ((not self.finished and not self.halted) and self.currentIndex<self.sections.__len__() and self.cap.isOpened()):
+            sectionStartTime=(self.sections[self.currentIndex].start/1000)+self.offset
+            sectionStartFrameIndex=round(sectionStartTime*self.fps)
             
-            cv2.imshow(frame)
+            print(f"{self.fps},time={sectionStartTime},frames={sectionStartFrameIndex}")
+            self.seekToFrame(sectionStartFrameIndex)
+            ret, frame = self.cap.read()
+            if(not ret):
+                self.finished=True
+                self.estimate()
+                self.update()
+                continue
+            if(self.currentIndex==0):
+                self.lastFrameImage=frame
+            else:
+                pass
+            # cv2.imshow('Frame',frame)
+            self.estimate()
+            self.update()
             self.currentIndex=self.currentIndex+1
+            print(self.currentIndex)
                 
-    def getFrame(self):
-        ret, frame = self.cap.read()
-        if(not ret):
-            self.finished=True
-            return None
-        return frame
-        
-    def seekToTime(self,time:float):
-        self.seekToFrame(round(time*self.fps))
         
     def seekToFrame(self,frame:int):
         self.cap.set(cv2.CAP_PROP_POS_FRAMES,frame)
