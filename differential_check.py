@@ -6,7 +6,7 @@ import numpy as np
 import numpy.typing as npt
 from threading import Thread
 
-from utils import CutterConfig,get_timestamp,Section
+from utils import CutterConfig,get_timestamp,Section, to_hhmmssms_time
 
 class DifferentialChecker:
     def update(self):
@@ -16,10 +16,16 @@ class DifferentialChecker:
         print("Halted!")
         traceback.print_exc()
         
+    def printExt(self,text):
+        pass
+    def print(self,text,**kwargs):
+        self.printExt(text)
+        print(text,**kwargs)
+        
     def __init__(self,videoFile:str,sections:list[Section],config:CutterConfig):
         self.videoFile=videoFile
         self.cap = cv2.VideoCapture(videoFile)
-        self.lastFrameImage:npt.NDArray|None=None
+        self.lastFrameImage:npt.NDArray
         self.finished=False
         self.halted=False
         self.config=config
@@ -34,6 +40,9 @@ class DifferentialChecker:
         self.lastIndex:int=0
         self.estimatedFps:float=0.0
         self.estimatedTime:float=float("inf")
+        self.thresold=0.2
+        
+        self.differed_frames:list[int]=[]
         
         info=pymediainfo.MediaInfo.parse(self.videoFile).video_tracks[0] # type: ignore
         data=info.to_data()
@@ -46,12 +55,11 @@ class DifferentialChecker:
 
         
     def process(self):
-        print(self.sections)
-        while ((not self.finished and not self.halted) and self.currentIndex<self.sections.__len__() and self.cap.isOpened()):
+        while (not self.finished and not self.halted and self.currentIndex<self.sections.__len__() and self.cap.isOpened()):
             sectionStartTime=(self.sections[self.currentIndex].start/1000)+self.offset
             sectionStartFrameIndex=round(sectionStartTime*self.fps)
             
-            print(f"{self.fps},time={sectionStartTime},frames={sectionStartFrameIndex}")
+            # print(f"{self.fps},time={sectionStartTime},frames={sectionStartFrameIndex}")
             self.seekToFrame(sectionStartFrameIndex)
             ret, frame = self.cap.read()
             if(not ret):
@@ -59,15 +67,46 @@ class DifferentialChecker:
                 self.estimate()
                 self.update()
                 continue
+            frame=self.config.crop(frame)
+            frame=cv2.resize(frame, (320,180), fx = 0, fy = 0,
+                            interpolation = cv2.INTER_LINEAR)
+            
             if(self.currentIndex==0):
                 self.lastFrameImage=frame
             else:
-                pass
-            # cv2.imshow('Frame',frame)
+                difference=self.compareFrames(frame1=frame,frame2=self.lastFrameImage)
+                # print(f"difference={difference}")
+                if(difference>self.thresold):
+                    self.lastFrameImage=frame
+                    self.differed_frames.append(sectionStartFrameIndex)
+                    self.print(f"Differ {self.differed_frames.__len__()} found at {to_hhmmssms_time(round(sectionStartFrameIndex*1000/self.fps))}, frameIndex={sectionStartFrameIndex}")
+                    
             self.estimate()
             self.update()
             self.currentIndex=self.currentIndex+1
-            print(self.currentIndex)
+            # print(self.currentIndex)
+            
+    def compareFrames(self,frame1:npt.NDArray,frame2:npt.NDArray):
+        gray_image1 = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
+        gray_image2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
+        thresold1=100
+        thresold2=200
+        
+        edges1 = cv2.Canny(gray_image1,thresold1,thresold2)
+        edges2 = cv2.Canny(gray_image2,thresold1,thresold2)
+        
+        difference = cv2.absdiff(edges1, edges2)
+        
+        # ret2,difference = cv2.threshold(difference,100 ,255, cv2.THRESH_BINARY)
+        
+        cv2.imshow('Edges1',edges1)
+        cv2.imshow('Edges2',edges2)
+        cv2.imshow('Frame1',frame1)
+        cv2.imshow('Frame2',frame2)
+        cv2.imshow('Difference',difference)
+        similarity_score = difference.mean()/255
+
+        return similarity_score
                 
         
     def seekToFrame(self,frame:int):

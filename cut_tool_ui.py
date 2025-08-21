@@ -185,17 +185,19 @@ class WorkerDifferentialDetection(Worker):
     def onUpdate(self,cutter:DifferentialChecker):
         if(self.isFinished):
             self.finished.emit()
-        self.showLog(f"{cutter.estimatedFps},{cutter.estimatedTime}")
+        # self.showLog(f"{cutter.differed_frames[-1]},{cutter.estimatedTime}")
         self.update.emit(cutter.progress,cutter.estimatedFps,cutter.estimatedTime)
+        
     def convertSingle(self,item:InputFileItemDualInputs):
         videoFile=item.filePath
         subtitleFile=item.file2Path
         self.fileChanged.emit(videoFile)
         with open(subtitleFile,"r") as f:
             lines=f.readlines()
-        cutter=DifferentialChecker(videoFile,parse_srt(lines),item.config)
-        cutter.update=partial(self.onUpdate,cutter)
-        cutter.process()
+        self.cutter=DifferentialChecker(videoFile,parse_srt(lines),item.config)
+        self.cutter.update=partial(self.onUpdate,self.cutter)
+        self.cutter.printExt=self.showLog
+        self.cutter.process()
         
     @property
     def isStarted(self):
@@ -206,6 +208,7 @@ class WorkerDifferentialDetection(Worker):
     @property
     def isHalted(self):
         return self.cutter!=None and self.cutter.halted
+    
     def halt(self):
         if self.cutter:
             self.cutter.halt()
@@ -354,6 +357,9 @@ class App(QtWidgets.QMainWindow):
                     self.queuedFiles.append(widget)
         self.buttonStart.setDisabled(True)
         self.buttonStop.setDisabled(False)
+        self.buttonStart_2.setDisabled(True)
+        self.buttonStop_2.setDisabled(False)
+        
         self.inputThreads.setDisabled(True)
         
         if self.worker:
@@ -384,8 +390,12 @@ class App(QtWidgets.QMainWindow):
                 widget.setDisabled(True)
                 if not widget.completed:
                     self.queuedFiles.append(widget)
+                    
         self.buttonStart.setDisabled(True)
         self.buttonStop.setDisabled(False)
+        self.buttonStart_2.setDisabled(True)
+        self.buttonStop_2.setDisabled(False)
+        
         self.inputThreads.setDisabled(True)
         
         if self.worker:
@@ -396,7 +406,7 @@ class App(QtWidgets.QMainWindow):
         
         self.thread=QThread(parent=self)
         # print([file.filePath for file in self.queuedFiles])
-        self.worker=WorkerDifferentialDetection(self.queuedFiles)
+        self.worker=WorkerDifferentialDetection(self.queuedFiles) # type: ignore
         self.worker.moveToThread(self.thread)
         
         self.thread.started.connect(self.worker.run)
@@ -421,8 +431,10 @@ class App(QtWidgets.QMainWindow):
         
     def haltConvert(self):
         if self.worker:
+            print("Halting worker...")
             self.worker.halt()
         if self.thread:
+            print("Terminating thread...")
             self.thread.terminate()
         self.onFinished()
             
