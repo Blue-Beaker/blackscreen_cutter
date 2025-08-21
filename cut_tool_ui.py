@@ -73,17 +73,17 @@ class CutterConfig:
         return frame[self.y1:self.y2,self.x1:self.x2]
         # return frame # 或无需裁剪
         
-    def save(self):
-        with open(CONFIG_FILE_PATH,"w") as f:
+    def save(self,config_path=CONFIG_FILE_PATH):
+        with open(config_path,"w") as f:
             dict2=self.__dict__.copy()
             dict2.pop('thr1',None)
             dict2.pop('thr2',None)
             json.dump(dict2,f,skipkeys=True,indent=2)
         
-    def load(self):
-        if(not os.path.isfile(CONFIG_FILE_PATH)):
+    def load(self,config_path=CONFIG_FILE_PATH):
+        if(not os.path.isfile(config_path)):
             return
-        with open(CONFIG_FILE_PATH,"r") as f:
+        with open(config_path,"r") as f:
             dict2=json.load(f)
         for key,value in dict2.items():
             self.__dict__[key]=value
@@ -491,24 +491,31 @@ class App(QtWidgets.QMainWindow):
         return None
 
     def dragEnterEvent(self, a0: QtGui.QDragEnterEvent) -> None:
+        tabIndex=self.tabWidget.currentIndex()
+        if(tabIndex==2):
+            return
         data=a0.mimeData()
         if not data:
             return
-        text=data.text()
-        
-        if text.startswith("file://"):
-            a0.accept()
+        text=data.text().split("\n")
+        if(text.__len__()==0):
+            return
+        if text[0].startswith("file://"):
+            if tabIndex!=3:
+                a0.accept()
+            elif text.__len__()==1 and text[0].endswith(".json"):
+                a0.accept()
     def dropEvent(self, a0:  QtGui.QDropEvent) -> None:
         data=a0.mimeData()
         if not data:
             return
         files=data.text().split("\n")
-        
-        if(self.tabWidget.currentIndex()==0):
+        tabIndex=self.tabWidget.currentIndex()
+        if(tabIndex==0):
             for line in files:
                 if line.startswith("file://"):
                     self.addFile(line[7:])
-        elif(self.tabWidget.currentIndex()==1):
+        elif(tabIndex==1):
             videoPath=None
             subtitlePath=None
             for line in files:
@@ -527,6 +534,10 @@ class App(QtWidgets.QMainWindow):
             inputFileItem=InputFileItemDualInputs(filePath=videoPath,file2Path=subtitlePath,config=self.config)
             # self.listInputFiles.addItem(inputFileItem)
             self.boxInputFiles_2.addWidget(inputFileItem)
+        elif(tabIndex==3):
+            self.config.load(files[0][7:])
+            self.postConfigLoad()
+        
     
     def addFile(self,filePath:str):
         print(filePath)
@@ -621,8 +632,7 @@ class App(QtWidgets.QMainWindow):
         self.config_percentage1.valueChanged.connect(self.config.setPercentage1)
         self.config_percentage2.valueChanged.connect(self.config.setPercentage2)
     
-    def loadConfig(self):
-        self.config.load()
+    def postConfigLoad(self):
         self.configArea_x1.setValue(self.config.x1)
         self.configArea_x2.setValue(self.config.x2)
         self.configArea_y1.setValue(self.config.y1)
@@ -630,7 +640,10 @@ class App(QtWidgets.QMainWindow):
         self.config_color_thresold.setValue(self.config.COLOR_THRESOLD)
         self.config_percentage1.setValue(self.config.PERCENTAGE_1)
         self.config_percentage2.setValue(self.config.PERCENTAGE_2)
-        self.config.save()
+    
+    def loadConfig(self):
+        self.config.load()
+        self.postConfigLoad()
         
     def saveConfig(self):
         self.config.save()
