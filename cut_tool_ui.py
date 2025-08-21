@@ -10,29 +10,48 @@ import os,sys,cv2,pymediainfo
 import traceback
 import time
 import numpy as np
+import json
 from threading import Thread
 
 from PyQt5 import QtWidgets,QtGui,QtCore,uic
 from PyQt5.QtCore import Qt,QThread,QObject,pyqtSignal
-from PyQt5.QtWidgets import QApplication,QPushButton,QLineEdit,QLabel,QListWidget,QProgressBar,QSpinBox,QListWidgetItem,QStatusBar,QVBoxLayout,QWidget,QGridLayout,QBoxLayout,QToolButton,QWidgetItem,QTextEdit
+from PyQt5.QtWidgets import QApplication,QPushButton,QLineEdit,QLabel,QListWidget,QProgressBar,QSpinBox,QListWidgetItem,QStatusBar,QVBoxLayout,QWidget,QGridLayout,QBoxLayout,QToolButton,QWidgetItem,QTextEdit,QDoubleSpinBox
+
+CONFIG_FILE_PATH='cut_tool_config.json'
+
+
+def dump(object:QObject):
+    out=[]
+    for key,value in object.__dict__.items():
+        if(isinstance(value,QObject)):
+            out.append(f"self.{key}: {type(value).__name__}")
+    out.sort()
+    print("\n".join(out))
 
 # os.chdir(sys.path[0])
 class CutterConfig:
-    SHOW:bool=False #是否要在处理时显示帧. 会变慢!
     #Whether to show image when processing. Slows down!
+    def __init__(self):
+        self.SHOW:bool=False #是否要在处理时显示帧. 会变慢!
+            
+        self.COLOR_THRESOLD:int=10 #颜色判定阈值. 0~255,0=黑,255=白
+        #Thresold to determine black color. 0~255, black = 0, white = 255
 
-    COLOR_THRESOLD:int=10 #颜色判定阈值. 0~255,0=黑,255=白
-    #Thresold to determine black color. 0~255, black = 0, white = 255
-
-    PERCENTAGE_1:float=99 #黑色占所选区域百分比大于此值判定开始黑屏
-    PERCENTAGE_2:float=98 #黑色占所选区域百分比小于此值判定结束黑屏
+        self.PERCENTAGE_1:float=99 #黑色占所选区域百分比大于此值判定开始黑屏
+        self.PERCENTAGE_2:float=98 #黑色占所选区域百分比小于此值判定结束黑屏
+        
+        # 在此设置需要判定黑屏的范围
+        self.x1:int=0
+        self.x2:int=1600
+        self.y1:int=0
+        self.y2:int=900
     
     def setColorThresold(self,num:int):
         self.COLOR_THRESOLD=num
-    def setPercentage1(self,num:int):
+    def setPercentage1(self,num:float):
         self.PERCENTAGE_1=num
         self.update()
-    def setPercentage2(self,num:int):
+    def setPercentage2(self,num:float):
         self.PERCENTAGE_2=num
         self.update()
         
@@ -49,16 +68,25 @@ class CutterConfig:
         self.thr1=255-(self.PERCENTAGE_1*255/100)
         self.thr2=255-(self.PERCENTAGE_2*255/100)
 
-    # 在此设置需要判定黑屏的范围
-    x1:int=0
-    x2:int=1600
-    y1:int=0
-    y2:int=900
 
     def crop(self,frame:np.ndarray):
         return frame[self.y1:self.y2,self.x1:self.x2]
         # return frame # 或无需裁剪
-
+        
+    def save(self):
+        with open(CONFIG_FILE_PATH,"w") as f:
+            dict2=self.__dict__.copy()
+            dict2.pop('thr1',None)
+            dict2.pop('thr2',None)
+            json.dump(dict2,f,skipkeys=True,indent=2)
+        
+    def load(self):
+        if(not os.path.isfile(CONFIG_FILE_PATH)):
+            return
+        with open(CONFIG_FILE_PATH,"r") as f:
+            dict2=json.load(f)
+        for key,value in dict2.items():
+            self.__dict__[key]=value
 
 
 def get_timestamp(time:float):
@@ -405,6 +433,14 @@ class App(QtWidgets.QMainWindow):
         self.progressBar:QProgressBar
         self.currentFileLabel:QLabel
         self.worker:Worker|None=None
+        self.configArea_x1: QSpinBox
+        self.configArea_x2: QSpinBox
+        self.configArea_y1: QSpinBox
+        self.configArea_y2: QSpinBox
+        self.config_color_thresold: QSpinBox
+        self.config_percentage1: QDoubleSpinBox
+        self.config_percentage2: QDoubleSpinBox
+        
         self.config:CutterConfig=CutterConfig()
         
         # for name,item in self.__dict__.items():
@@ -418,7 +454,10 @@ class App(QtWidgets.QMainWindow):
         self.boxInputFiles.setAlignment(Qt.AlignmentFlag.AlignTop)
     
         self.buttonAddFile.clicked.connect(self.pickFiles)
-    
+        self.initConfig()
+        self.loadConfig()
+        dump(self)
+                
     def pickFiles(self,event):
         dialog=QtWidgets.QFileDialog()
         dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFiles)
@@ -483,6 +522,8 @@ class App(QtWidgets.QMainWindow):
         
         self.thread.start()
         
+        
+                
     def showLog(self,line:str):    
         self.logOutput.addItem(QListWidgetItem(line))
         
@@ -516,6 +557,7 @@ class App(QtWidgets.QMainWindow):
                 
     def closeEvent(self,event:QtGui.QCloseEvent):
         try:
+            self.saveConfig()
             if self.worker:
                 self.worker.halt()
             if self.thread:
@@ -525,6 +567,30 @@ class App(QtWidgets.QMainWindow):
             event.accept()
         except:
             traceback.print_exc()
+    
+    def initConfig(self):
+        self.configArea_x1.valueChanged.connect(self.config.setX1)
+        self.configArea_x2.valueChanged.connect(self.config.setX2)
+        self.configArea_y1.valueChanged.connect(self.config.setY1)
+        self.configArea_y2.valueChanged.connect(self.config.setY2)
+        self.config_color_thresold.valueChanged.connect(self.config.setColorThresold)
+        self.config_percentage1.valueChanged.connect(self.config.setPercentage1)
+        self.config_percentage2.valueChanged.connect(self.config.setPercentage2)
+    
+    def loadConfig(self):
+        self.config.load()
+        self.configArea_x1.setValue(self.config.x1)
+        self.configArea_x2.setValue(self.config.x2)
+        self.configArea_y1.setValue(self.config.y1)
+        self.configArea_y2.setValue(self.config.y2)
+        self.config_color_thresold.setValue(self.config.COLOR_THRESOLD)
+        self.config_percentage1.setValue(self.config.PERCENTAGE_1)
+        self.config_percentage2.setValue(self.config.PERCENTAGE_2)
+        self.config.save()
+        
+    def saveConfig(self):
+        self.config.save()
+    
         
         
 app = QApplication(sys.argv)
