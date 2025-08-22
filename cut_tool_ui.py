@@ -268,6 +268,8 @@ class App(QtWidgets.QMainWindow):
         self.boxInputFiles_2.setAlignment(Qt.AlignmentFlag.AlignTop)
     
         self.buttonAddFile.clicked.connect(self.pickFiles)
+        self.buttonAddFile_2.clicked.connect(self.pickFilesForTab2)
+        
         self.tabWidget.setCurrentIndex(0)
         self.initConfig()
         self.loadConfig()
@@ -281,6 +283,16 @@ class App(QtWidgets.QMainWindow):
             files=dialog.selectedFiles()
             for file in files:
                 self.addFile(file)
+                
+    def pickFilesForTab2(self,event):
+        dialog=QtWidgets.QFileDialog()
+        dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFiles)
+        dialog.setNameFilters(["Video(*.mkv *.mp4 *.flv)","All Files(*)"])
+        if dialog.exec_():
+            files=dialog.selectedFiles()
+            for file in files:
+                self.addVideoFileToTab2(file)
+                
     def pickSingleFile(self,format="",title:str|None=None):
         dialog=QtWidgets.QFileDialog()
         if title:
