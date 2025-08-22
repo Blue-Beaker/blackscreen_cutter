@@ -31,7 +31,7 @@ class CutterConfig:
         #差异检测所用
         self.diffThresold:float=0.05
         self.timeOffset:float=0
-        self.diffSubtract:int=35
+        self.diffSubtract:int=50
         
         self.cannyThresold2:int=200
     
