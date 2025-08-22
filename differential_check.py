@@ -44,7 +44,7 @@ class DifferentialChecker:
         self.thresold=self.config.diffThresold
         self.offset:float=self.config.timeOffset
         
-        self.differed_frames:list[int]=[]
+        self.outputSections:list[Section]=[]
         
         info=pymediainfo.MediaInfo.parse(self.videoFile).video_tracks[0] # type: ignore
         data=info.to_data()
@@ -58,7 +58,8 @@ class DifferentialChecker:
         
     def process(self):
         while (not self.finished and not self.halted and self.currentIndex<self.sections.__len__() and self.cap.isOpened()):
-            sectionStartTime=(self.sections[self.currentIndex].start/1000)+self.offset
+            section=self.sections[self.currentIndex]
+            sectionStartTime=(section.start/1000)+self.offset
             sectionStartFrameIndex=round(sectionStartTime*self.fps)
             
             # print(f"{self.fps},time={sectionStartTime},frames={sectionStartFrameIndex}")
@@ -87,14 +88,19 @@ class DifferentialChecker:
                 # print(f"difference={difference}")
                 if(difference>self.thresold):
                     self.lastFrameImage=frame
-                    self.differed_frames.append(sectionStartFrameIndex)
-                    self.print(f"Differ {self.differed_frames.__len__()} found at {to_hhmmssms_time(round(sectionStartFrameIndex*1000/self.fps))}, frameIndex={sectionStartFrameIndex}")
+                    self.outputSections.append(section)
+                    
+                    self.print(f"difference={difference}")
+                    self.print(f"Differ {self.outputSections.__len__()} found at {to_hhmmssms_time(round(sectionStartFrameIndex*1000/self.fps))}, frameIndex={sectionStartFrameIndex}")
             
             self.lastFrameImage=frame
             self.estimate()
             self.update()
             self.currentIndex=self.currentIndex+1
             # print(self.currentIndex)
+        if not self.halted:
+            self.write_subtitle()
+        
     def checkDarkFrame(self,frame:npt.NDArray):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         ret2,Thresh = cv2.threshold(gray,self.config.COLOR_THRESOLD ,255, cv2.THRESH_BINARY)
@@ -107,10 +113,15 @@ class DifferentialChecker:
         
         difference_raw = cv2.absdiff(gray_image1, gray_image2)
         
-        color=cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
-        color[:,:]=25
+        # color=cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
+        # color[:,:]=self.config.diffSubtract
         
-        difference = cv2.subtract(difference_raw,color)
+        # difference = cv2.subtract(difference_raw,color)
+        
+        difference:np.ndarray
+        ret2,difference = cv2.threshold(difference_raw,self.config.diffSubtract ,255, cv2.THRESH_BINARY)
+        
+        difference=cv2.multiply(difference,difference_raw,scale=1/256)
         
         if(self.config.SHOW):
             frames=np.vstack([frame1,frame2])
@@ -120,8 +131,6 @@ class DifferentialChecker:
             cv2.waitKey(1)
         
         similarity_score = difference.mean()/255
-        
-        self.print(f"similarity_score={similarity_score}")
 
         return similarity_score
                 
@@ -139,6 +148,17 @@ class DifferentialChecker:
         
         self.lastTime=newTime
         self.lastIndex=self.currentIndex
+        
+    def write_subtitle(self):
+        subtitleId=0
+        lines:list[str]=[]
+        for section in self.outputSections:
+            lines.extend(section.makeLines(subtitleId,f'#{subtitleId}'))
+            subtitleId=subtitleId+1
+        outputFile=self.videoFile+"_diff.srt"
+        with open(outputFile,"w") as f:
+            f.write("\n".join(lines))
+        
         
     @property
     def progress(self):

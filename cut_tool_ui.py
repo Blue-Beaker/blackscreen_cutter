@@ -89,7 +89,7 @@ class Worker(QObject):
     log=pyqtSignal(str)
     fileChanged=pyqtSignal(str)
     #Progress, estimated fps, estimated time
-    update=pyqtSignal(float,float,float)
+    update=pyqtSignal(float,str)
     
     def __init__(self):
         super().__init__()
@@ -97,7 +97,6 @@ class Worker(QObject):
         
     def showLog(self,text:str,**kwargs):
         self.log.emit(text)
-        print(text,**kwargs)
         
     @property
     def isStarted(self):
@@ -132,7 +131,7 @@ class WorkerBlackscreenDetection(Worker):
                 progress=min(progress,thr.progress)
                 fps=fps+thr.estimatedFps
                 estimatedTime=max(estimatedTime,thr.estimatedTime)
-            self.update.emit(progress,fps,estimatedTime)
+            self.update.emit(progress,f"Processing fps:{fps:.1f}, Estimated:{estimatedTime:.1f}s")
         
     def halt(self):
         self.halted=True
@@ -186,7 +185,7 @@ class WorkerDifferentialDetection(Worker):
         if(self.isFinished):
             self.finished.emit()
         # self.showLog(f"{cutter.differed_frames[-1]},{cutter.estimatedTime}")
-        self.update.emit(cutter.progress,cutter.estimatedFps,cutter.estimatedTime)
+        self.update.emit(cutter.progress,f"Processing fps:{cutter.fps:.1f}, Estimated:{cutter.estimatedTime:.1f}s")
         
     def convertSingle(self,item:InputFileItemDualInputs):
         videoFile=item.filePath
@@ -426,11 +425,11 @@ class App(QtWidgets.QMainWindow):
     def showLog(self,line:str):    
         self.logOutput.addItem(QListWidgetItem(line))
         
-    def updateProgress(self,progress:float,fps:float,estimatedTime:float):
+    def updateProgress(self,progress:float,message:str):
         try:
             self.progressBar.setValue(math.floor(progress*100))
             if self.worker:
-                self.statusbar.showMessage(f"Processing fps:{fps:.1f}, Estimated:{estimatedTime:.1f}s",2147483647)
+                self.statusbar.showMessage(message,2147483647)
         except:
             traceback.print_exc()
         

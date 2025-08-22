@@ -31,7 +31,7 @@ class CutterConfig:
         #差异检测所用
         self.diffThresold:float=0.05
         self.timeOffset:float=0
-        self.diffSubtract:int=100
+        self.diffSubtract:int=35
         
         self.cannyThresold2:int=200
     
@@ -91,6 +91,13 @@ class Section:
         return self.__str__()
     def __str__(self) -> str:
         return f"{self.start}ms -> {self.end}ms"
+    def makeLines(self,id:int,subtitle:str) -> list[str]:
+        return [
+            str(id),
+            f"{get_timestamp(self.start/1000)} --> {get_timestamp(self.end/1000)}",
+            f"{subtitle}",
+            ""
+        ]
 
 def parse_srt_time(line:str)->int:
     try:
