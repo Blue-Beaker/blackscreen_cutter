@@ -2,6 +2,7 @@
 import json
 import math
 import os
+import sys
 from typing import Any
 
 import numpy as np
@@ -9,7 +10,8 @@ from PyQt5 import QtWidgets,QtGui,QtCore,uic
 from PyQt5.QtCore import Qt,QThread,QObject,pyqtSignal
 from PyQt5.QtWidgets import QApplication,QPushButton,QLineEdit,QLabel,QListWidget,QProgressBar,QSpinBox,QListWidgetItem,QStatusBar,QVBoxLayout,QWidget,QGridLayout,QBoxLayout,QToolButton,QWidgetItem,QTextEdit,QDoubleSpinBox,QTabWidget
 # os.chdir(sys.path[0])
-CONFIG_FILE_PATH='cut_tool_config.json'
+
+CONFIG_FILE_PATH=os.path.join(sys.path[0],'cut_tool_config.json')
 
 class CutterConfig:
     #Whether to show image when processing. Slows down!
@@ -32,8 +34,6 @@ class CutterConfig:
         self.diffThresold:float=0.05
         self.timeOffset:float=0
         self.diffSubtract:int=50
-        
-        self.cannyThresold2:int=200
     
     def setField(self,field:str,value:Any):
         if hasattr(self,field):

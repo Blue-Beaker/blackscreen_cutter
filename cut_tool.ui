@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>577</width>
+    <width>582</width>
     <height>482</height>
    </rect>
   </property>
@@ -377,13 +377,6 @@
              </property>
             </widget>
            </item>
-           <item row="2" column="3">
-            <widget class="QSpinBox" name="config_diff_cannyThresold2">
-             <property name="maximum">
-              <number>255</number>
-             </property>
-            </widget>
-           </item>
            <item row="0" column="3">
             <widget class="QDoubleSpinBox" name="config_diff_diffThresold">
              <property name="maximum">
@@ -408,13 +401,6 @@
             <widget class="QLabel" name="label_diff_diffThresold">
              <property name="text">
               <string>差异值</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="2">
-            <widget class="QLabel" name="label_diff_cannyThresold2">
-             <property name="text">
-              <string>边缘阈值2</string>
              </property>
             </widget>
            </item>

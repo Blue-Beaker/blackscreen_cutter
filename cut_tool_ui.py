@@ -248,7 +248,6 @@ class App(QtWidgets.QMainWindow):
         self.config_percentage2: QDoubleSpinBox
         self.tabWidget: QTabWidget
         self.config_diff_diffSubtract: QSpinBox
-        self.config_diff_cannyThresold2: QSpinBox
         self.config_diff_diffThresold: QDoubleSpinBox
         self.config_diff_timeOffset: QDoubleSpinBox
         self.config_show_image: QCheckBox
@@ -482,7 +481,6 @@ class App(QtWidgets.QMainWindow):
         "config_diff_timeOffset":"timeOffset",
         "config_diff_diffThresold":"diffThresold",
         "config_diff_diffSubtract":"diffSubtract",
-        "config_diff_cannyThresold2":"cannyThresold2",
         "config_show_image":"SHOW",
     }
     
