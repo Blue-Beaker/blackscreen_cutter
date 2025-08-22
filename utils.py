@@ -84,18 +84,19 @@ class CutterConfig:
             self.__dict__[key]=value
 
 class Section:
-    def __init__(self,start:int,end:int) -> None:
+    def __init__(self,start:int,end:int,subtitle:str|None=None) -> None:
         self.start:int=start
         self.end:int=end
+        self.subtitle=subtitle
     def __repr__(self) -> str:
         return self.__str__()
     def __str__(self) -> str:
         return f"{self.start}ms -> {self.end}ms"
-    def makeLines(self,id:int,subtitle:str) -> list[str]:
+    def makeLines(self,index:int,subtitle:str|None=None) -> list[str]:
         return [
-            str(id),
+            str(index),
             f"{get_timestamp(self.start/1000)} --> {get_timestamp(self.end/1000)}",
-            f"{subtitle}",
+            subtitle or self.subtitle or f"#{index}",
             ""
         ]
 

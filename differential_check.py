@@ -88,7 +88,7 @@ class DifferentialChecker:
                 # print(f"difference={difference}")
                 if(difference>self.thresold):
                     self.lastFrameImage=frame
-                    self.outputSections.append(section)
+                    self.outputSections.append(Section(section.start,section.end,f"#{self.currentIndex},diff={difference:.4f}"))
                     
                     self.print(f"difference={difference}")
                     self.print(f"Differ {self.outputSections.__len__()} found at {to_hhmmssms_time(round(sectionStartFrameIndex*1000/self.fps))}, frameIndex={sectionStartFrameIndex}")
@@ -100,6 +100,8 @@ class DifferentialChecker:
             # print(self.currentIndex)
         if not self.halted:
             self.write_subtitle()
+        self.finished=True
+        self.update()
         
     def checkDarkFrame(self,frame:npt.NDArray):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)

@@ -55,11 +55,14 @@ class InputFileItem(QWidget):
         line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
         line.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
         layout.addWidget(line,2,0,1,5)
+        self.disabled=False
         
     def setDisabled(self,disabled:bool):
-        self.removeButton.setDisabled(disabled)
+        self.disabled=disabled
         
     def remove(self):
+        if self.disabled:
+            return
         parent=self.parent()
         if isinstance(parent,QWidget):
             layout=parent.layout()
@@ -185,7 +188,7 @@ class WorkerDifferentialDetection(Worker):
         if(self.isFinished):
             self.finished.emit()
         # self.showLog(f"{cutter.differed_frames[-1]},{cutter.estimatedTime}")
-        self.update.emit(cutter.progress,f"Processing fps:{cutter.fps:.1f}, Estimated:{cutter.estimatedTime:.1f}s")
+        self.update.emit(cutter.progress,f"Processing fps:{cutter.estimatedFps:.1f}, Estimated:{cutter.estimatedTime:.1f}s")
         
     def convertSingle(self,item:InputFileItemDualInputs):
         videoFile=item.filePath
@@ -451,10 +454,10 @@ class App(QtWidgets.QMainWindow):
             self.buttonStop_2.setDisabled(True)
             
             for widget in getLayoutWidgets(self.boxInputFiles):
-                if(isinstance(widget,InputFileItem)):
+                if(hasattr(widget,"setDisabled")):
                     widget.setDisabled(False)
             for widget in getLayoutWidgets(self.boxInputFiles_2):
-                if(isinstance(widget,InputFileItem)):
+                if(hasattr(widget,"setDisabled")):
                     widget.setDisabled(False)
             self.queuedFiles.clear()
         except:
