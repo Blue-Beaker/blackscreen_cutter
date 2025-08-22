@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>554</width>
+    <width>577</width>
     <height>482</height>
    </rect>
   </property>
@@ -104,8 +104,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>516</width>
-               <height>250</height>
+               <width>96</width>
+               <height>26</height>
               </rect>
              </property>
              <property name="sizePolicy">
@@ -172,8 +172,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>518</width>
-             <height>292</height>
+             <width>96</width>
+             <height>26</height>
             </rect>
            </property>
            <property name="sizePolicy">
@@ -351,9 +351,9 @@
           </property>
           <layout class="QGridLayout" name="gridLayout_5">
            <item row="2" column="0">
-            <widget class="QLabel" name="label_diff_cannyThresold1">
+            <widget class="QLabel" name="label_diff_diffSubtract">
              <property name="text">
-              <string>边缘阈值1</string>
+              <string>从差值减去</string>
              </property>
             </widget>
            </item>
@@ -371,6 +371,9 @@
              </property>
              <property name="maximum">
               <double>86400.000000000000000</double>
+             </property>
+             <property name="singleStep">
+              <double>0.050000000000000</double>
              </property>
             </widget>
            </item>
@@ -395,7 +398,7 @@
             </widget>
            </item>
            <item row="2" column="1">
-            <widget class="QSpinBox" name="config_diff_cannyThresold1">
+            <widget class="QSpinBox" name="config_diff_diffSubtract">
              <property name="maximum">
               <number>255</number>
              </property>

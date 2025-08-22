@@ -34,14 +34,15 @@ class DifferentialChecker:
         self.startIndex:int=0
         self.endIndex:int=sections.__len__()-1
         
-        self.offset:float=0
         
         self.currentIndex:int=0
         self.lastTime:float=0.0
         self.lastIndex:int=0
         self.estimatedFps:float=0.0
         self.estimatedTime:float=float("inf")
-        self.thresold=0.2
+        
+        self.thresold=self.config.diffThresold
+        self.offset:float=self.config.timeOffset
         
         self.differed_frames:list[int]=[]
         
@@ -62,52 +63,65 @@ class DifferentialChecker:
             
             # print(f"{self.fps},time={sectionStartTime},frames={sectionStartFrameIndex}")
             self.seekToFrame(sectionStartFrameIndex)
-            ret, frame = self.cap.read()
-            if(not ret):
-                self.finished=True
-                self.estimate()
-                self.update()
-                continue
-            frame=self.config.crop(frame)
-            frame=cv2.resize(frame, (320,180), fx = 0, fy = 0,
-                            interpolation = cv2.INTER_LINEAR)
             
-            if(self.currentIndex==0):
-                self.lastFrameImage=frame
-            else:
+            frameFound=False
+            
+            frame:npt.NDArray
+            while not frameFound:
+                ret, frame = self.cap.read()
+                if(not ret):
+                    self.finished=True
+                    self.estimate()
+                    self.update()
+                    continue
+            
+                frame=self.config.crop(frame)
+                frame=cv2.resize(frame, (320,180), fx = 0, fy = 0,
+                                interpolation = cv2.INTER_LINEAR)
+                if(self.checkDarkFrame(frame)>25):
+                    frameFound=True
+                sectionStartFrameIndex=sectionStartFrameIndex+1
+            
+            if(self.currentIndex!=0):
                 difference=self.compareFrames(frame1=frame,frame2=self.lastFrameImage)
                 # print(f"difference={difference}")
                 if(difference>self.thresold):
                     self.lastFrameImage=frame
                     self.differed_frames.append(sectionStartFrameIndex)
                     self.print(f"Differ {self.differed_frames.__len__()} found at {to_hhmmssms_time(round(sectionStartFrameIndex*1000/self.fps))}, frameIndex={sectionStartFrameIndex}")
-                    
+            
+            self.lastFrameImage=frame
             self.estimate()
             self.update()
             self.currentIndex=self.currentIndex+1
             # print(self.currentIndex)
-            
+    def checkDarkFrame(self,frame:npt.NDArray):
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        ret2,Thresh = cv2.threshold(gray,self.config.COLOR_THRESOLD ,255, cv2.THRESH_BINARY)
+        mean=Thresh.mean()
+        return mean
+    
     def compareFrames(self,frame1:npt.NDArray,frame2:npt.NDArray):
         gray_image1 = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
         gray_image2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
-        thresold1=150
-        thresold2=200
         
-        edges1 = cv2.Canny(gray_image1,thresold1,thresold2)
-        edges2 = cv2.Canny(gray_image2,thresold1,thresold2)
+        difference_raw = cv2.absdiff(gray_image1, gray_image2)
         
-        difference = cv2.absdiff(edges1, edges2)
+        color=cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
+        color[:,:]=25
         
-        # ret2,difference = cv2.threshold(difference,100 ,255, cv2.THRESH_BINARY)
+        difference = cv2.subtract(difference_raw,color)
+        
         if(self.config.SHOW):
-            cv2.imshow('Edges1',edges1)
-            cv2.imshow('Edges2',edges2)
-            cv2.imshow('Frame1',frame1)
-            cv2.imshow('Frame2',frame2)
-            cv2.imshow('Difference',difference)
+            frames=np.vstack([frame1,frame2])
+            shown_diff=cv2.cvtColor(np.vstack([difference_raw,difference]),cv2.COLOR_GRAY2BGR)
+            
+            cv2.imshow('Frames',np.hstack([frames,shown_diff]))
             cv2.waitKey(1)
         
         similarity_score = difference.mean()/255
+        
+        self.print(f"similarity_score={similarity_score}")
 
         return similarity_score
                 

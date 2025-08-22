@@ -29,16 +29,17 @@ class CutterConfig:
         self.y2:int=900
         
         #差异检测所用
-        self.diffThresold:float=0.2
+        self.diffThresold:float=0.05
         self.timeOffset:float=0
-        self.cannyThresold1:int=100
+        self.diffSubtract:int=100
+        
         self.cannyThresold2:int=200
     
     def setField(self,field:str,value:Any):
-        if field in self.__dict__:
-            self.__dict__[field]=type(self.__dict__[field])(value)
+        if hasattr(self,field):
+            setattr(self,field,value)
     def getField(self,field:str):
-        return self.__dict__.get(field)
+        return getattr(self,field)
     
     def setColorThresold(self,num:int):
         self.COLOR_THRESOLD=num

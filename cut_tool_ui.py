@@ -245,7 +245,7 @@ class App(QtWidgets.QMainWindow):
         self.config_percentage1: QDoubleSpinBox
         self.config_percentage2: QDoubleSpinBox
         self.tabWidget: QTabWidget
-        self.config_diff_cannyThresold1: QSpinBox
+        self.config_diff_diffSubtract: QSpinBox
         self.config_diff_cannyThresold2: QSpinBox
         self.config_diff_diffThresold: QDoubleSpinBox
         self.config_diff_timeOffset: QDoubleSpinBox
@@ -448,11 +448,16 @@ class App(QtWidgets.QMainWindow):
             self.buttonStart.setDisabled(False)
             self.buttonStop.setDisabled(True)
             self.inputThreads.setDisabled(False)
+            self.buttonStart_2.setDisabled(False)
+            self.buttonStop_2.setDisabled(True)
             
             for widget in getLayoutWidgets(self.boxInputFiles):
                 if(isinstance(widget,InputFileItem)):
                     widget.setDisabled(False)
-                    self.queuedFiles.clear()
+            for widget in getLayoutWidgets(self.boxInputFiles_2):
+                if(isinstance(widget,InputFileItem)):
+                    widget.setDisabled(False)
+            self.queuedFiles.clear()
         except:
             traceback.print_exc()
                 
@@ -479,7 +484,7 @@ class App(QtWidgets.QMainWindow):
         "config_percentage2":"PERCENTAGE_2",
         "config_diff_timeOffset":"timeOffset",
         "config_diff_diffThresold":"diffThresold",
-        "config_diff_cannyThresold1":"cannyThresold1",
+        "config_diff_diffSubtract":"diffSubtract",
         "config_diff_cannyThresold2":"cannyThresold2",
         "config_show_image":"SHOW",
     }
