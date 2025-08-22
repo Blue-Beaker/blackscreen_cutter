@@ -2,6 +2,7 @@
 import json
 import math
 import os
+from typing import Any
 
 import numpy as np
 from PyQt5 import QtWidgets,QtGui,QtCore,uic
@@ -26,6 +27,18 @@ class CutterConfig:
         self.x2:int=1600
         self.y1:int=0
         self.y2:int=900
+        
+        #差异检测所用
+        self.diffThresold:float=0.2
+        self.timeOffset:float=0
+        self.cannyThresold1:int=100
+        self.cannyThresold2:int=200
+    
+    def setField(self,field:str,value:Any):
+        if field in self.__dict__:
+            self.__dict__[field]=type(self.__dict__[field])(value)
+    def getField(self,field:str):
+        return self.__dict__.get(field)
     
     def setColorThresold(self,num:int):
         self.COLOR_THRESOLD=num

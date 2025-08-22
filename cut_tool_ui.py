@@ -15,7 +15,7 @@ from threading import Thread
 
 from PyQt5 import QtWidgets,QtGui,QtCore,uic
 from PyQt5.QtCore import Qt,QThread,QObject,pyqtSignal
-from PyQt5.QtWidgets import QApplication,QPushButton,QLineEdit,QLabel,QListWidget,QProgressBar,QSpinBox,QListWidgetItem,QStatusBar,QVBoxLayout,QWidget,QGridLayout,QBoxLayout,QToolButton,QWidgetItem,QTextEdit,QDoubleSpinBox,QTabWidget
+from PyQt5.QtWidgets import QApplication,QPushButton,QLineEdit,QLabel,QListWidget,QProgressBar,QSpinBox,QListWidgetItem,QStatusBar,QVBoxLayout,QWidget,QGridLayout,QBoxLayout,QToolButton,QWidgetItem,QTextEdit,QDoubleSpinBox,QTabWidget,QCheckBox
 
 from differential_check import DifferentialChecker
 from utils import CutterConfig, parse_srt
@@ -245,6 +245,11 @@ class App(QtWidgets.QMainWindow):
         self.config_percentage1: QDoubleSpinBox
         self.config_percentage2: QDoubleSpinBox
         self.tabWidget: QTabWidget
+        self.config_diff_cannyThresold1: QSpinBox
+        self.config_diff_cannyThresold2: QSpinBox
+        self.config_diff_diffThresold: QDoubleSpinBox
+        self.config_diff_timeOffset: QDoubleSpinBox
+        self.config_show_image: QCheckBox
         
         self.config:CutterConfig=CutterConfig()
         
@@ -265,7 +270,7 @@ class App(QtWidgets.QMainWindow):
         self.tabWidget.setCurrentIndex(0)
         self.initConfig()
         self.loadConfig()
-        dump(self)
+        # dump(self)
                 
     def pickFiles(self,event):
         dialog=QtWidgets.QFileDialog()
@@ -464,23 +469,36 @@ class App(QtWidgets.QMainWindow):
         except:
             traceback.print_exc()
     
+    config_fields:dict={
+        "configArea_x1":"x1",
+        "configArea_x2":"x2",
+        "configArea_y1":"y1",
+        "configArea_y2":"y2",
+        "config_color_thresold":"COLOR_THRESOLD",
+        "config_percentage1":"PERCENTAGE_1",
+        "config_percentage2":"PERCENTAGE_2",
+        "config_diff_timeOffset":"timeOffset",
+        "config_diff_diffThresold":"diffThresold",
+        "config_diff_cannyThresold1":"cannyThresold1",
+        "config_diff_cannyThresold2":"cannyThresold2",
+        "config_show_image":"SHOW",
+    }
+    
     def initConfig(self):
-        self.configArea_x1.valueChanged.connect(self.config.setX1)
-        self.configArea_x2.valueChanged.connect(self.config.setX2)
-        self.configArea_y1.valueChanged.connect(self.config.setY1)
-        self.configArea_y2.valueChanged.connect(self.config.setY2)
-        self.config_color_thresold.valueChanged.connect(self.config.setColorThresold)
-        self.config_percentage1.valueChanged.connect(self.config.setPercentage1)
-        self.config_percentage2.valueChanged.connect(self.config.setPercentage2)
+        for configWidget,configField in self.config_fields.items():
+            widget=self.__dict__.get(configWidget)
+            if(hasattr(widget,"valueChanged")):
+                widget.valueChanged.connect(partial(self.config.setField,configField)) # type: ignore
+            elif(hasattr(widget,"stateChanged")):
+                widget.stateChanged.connect(partial(self.config.setField,configField)) # type: ignore
     
     def postConfigLoad(self):
-        self.configArea_x1.setValue(self.config.x1)
-        self.configArea_x2.setValue(self.config.x2)
-        self.configArea_y1.setValue(self.config.y1)
-        self.configArea_y2.setValue(self.config.y2)
-        self.config_color_thresold.setValue(self.config.COLOR_THRESOLD)
-        self.config_percentage1.setValue(self.config.PERCENTAGE_1)
-        self.config_percentage2.setValue(self.config.PERCENTAGE_2)
+        for configWidget,configField in self.config_fields.items():
+            widget=self.__dict__.get(configWidget)
+            if(hasattr(widget,"setValue")):
+                widget.setValue(self.config.getField(configField)) # type: ignore
+            elif(hasattr(widget,"setChecked")):
+                widget.setChecked(self.config.getField(configField)) # type: ignore
     
     def loadConfig(self):
         self.config.load()

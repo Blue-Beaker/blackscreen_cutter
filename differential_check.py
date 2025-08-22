@@ -1,4 +1,5 @@
 
+import sys
 import cv2,pymediainfo
 import traceback
 import time
@@ -6,7 +7,7 @@ import numpy as np
 import numpy.typing as npt
 from threading import Thread
 
-from utils import CutterConfig,get_timestamp,Section, to_hhmmssms_time
+from utils import CutterConfig,get_timestamp,Section, parse_srt, to_hhmmssms_time
 
 class DifferentialChecker:
     def update(self):
@@ -33,7 +34,7 @@ class DifferentialChecker:
         self.startIndex:int=0
         self.endIndex:int=sections.__len__()-1
         
-        self.offset:float=0.2
+        self.offset:float=0
         
         self.currentIndex:int=0
         self.lastTime:float=0.0
@@ -89,7 +90,7 @@ class DifferentialChecker:
     def compareFrames(self,frame1:npt.NDArray,frame2:npt.NDArray):
         gray_image1 = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
         gray_image2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
-        thresold1=100
+        thresold1=150
         thresold2=200
         
         edges1 = cv2.Canny(gray_image1,thresold1,thresold2)
@@ -98,12 +99,14 @@ class DifferentialChecker:
         difference = cv2.absdiff(edges1, edges2)
         
         # ret2,difference = cv2.threshold(difference,100 ,255, cv2.THRESH_BINARY)
+        if(self.config.SHOW):
+            cv2.imshow('Edges1',edges1)
+            cv2.imshow('Edges2',edges2)
+            cv2.imshow('Frame1',frame1)
+            cv2.imshow('Frame2',frame2)
+            cv2.imshow('Difference',difference)
+            cv2.waitKey(1)
         
-        cv2.imshow('Edges1',edges1)
-        cv2.imshow('Edges2',edges2)
-        cv2.imshow('Frame1',frame1)
-        cv2.imshow('Frame2',frame2)
-        cv2.imshow('Difference',difference)
         similarity_score = difference.mean()/255
 
         return similarity_score
@@ -126,3 +129,11 @@ class DifferentialChecker:
     @property
     def progress(self):
         return (self.currentIndex-self.startIndex)/(self.endIndex-self.startIndex)
+    
+if __name__ == "__main__":
+    with open(sys.argv[1]+".srt") as f:
+        sections=parse_srt(f.readlines())
+    config=CutterConfig()
+    config.SHOW=True
+    checker=DifferentialChecker(sys.argv[1],sections,config)
+    checker.process()

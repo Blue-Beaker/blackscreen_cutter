@@ -105,7 +105,7 @@
                <x>0</x>
                <y>0</y>
                <width>516</width>
-               <height>208</height>
+               <height>250</height>
               </rect>
              </property>
              <property name="sizePolicy">
@@ -173,7 +173,7 @@
              <x>0</x>
              <y>0</y>
              <width>518</width>
-             <height>250</height>
+             <height>292</height>
             </rect>
            </property>
            <property name="sizePolicy">
@@ -206,8 +206,8 @@
        <attribute name="title">
         <string>配置</string>
        </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout">
-        <item>
+       <layout class="QGridLayout" name="gridLayout_3">
+        <item row="0" column="0">
          <widget class="QGroupBox" name="configArea">
           <property name="title">
            <string>检测范围</string>
@@ -278,10 +278,10 @@
           </layout>
          </widget>
         </item>
-        <item>
+        <item row="0" column="1">
          <widget class="QGroupBox" name="groupBox_2">
           <property name="title">
-           <string>判定设置</string>
+           <string>黑屏检测设置</string>
           </property>
           <property name="flat">
            <bool>false</bool>
@@ -290,31 +290,13 @@
            <bool>false</bool>
           </property>
           <layout class="QGridLayout" name="gridLayout_2">
-           <item row="1" column="2">
-            <widget class="QLabel" name="label_percentage2">
-             <property name="text">
-              <string>黑屏结束百分比</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_percentage1">
-             <property name="text">
-              <string>黑屏开始百分比</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QSpinBox" name="config_color_thresold">
+           <item row="2" column="1">
+            <widget class="QDoubleSpinBox" name="config_percentage2">
              <property name="maximum">
-              <number>255</number>
+              <double>100.000000000000000</double>
              </property>
-            </widget>
-           </item>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_color_thresold">
-             <property name="text">
-              <string>黑色判定阈值(0=纯黑, 255=纯白)</string>
+             <property name="value">
+              <double>98.000000000000000</double>
              </property>
             </widget>
            </item>
@@ -328,13 +310,124 @@
              </property>
             </widget>
            </item>
-           <item row="1" column="3">
-            <widget class="QDoubleSpinBox" name="config_percentage2">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_color_thresold">
+             <property name="text">
+              <string>黑色判定阈值(0=纯黑, 255=纯白)</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_percentage2">
+             <property name="text">
+              <string>黑屏结束百分比</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QSpinBox" name="config_color_thresold">
+             <property name="maximum">
+              <number>255</number>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_percentage1">
+             <property name="text">
+              <string>黑屏开始百分比</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QGroupBox" name="groupBox_4">
+          <property name="title">
+           <string>差异检测设置</string>
+          </property>
+          <property name="checkable">
+           <bool>false</bool>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_5">
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_diff_cannyThresold1">
+             <property name="text">
+              <string>边缘阈值1</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_diff_timeOffset">
+             <property name="text">
+              <string>时间偏移</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QDoubleSpinBox" name="config_diff_timeOffset">
+             <property name="minimum">
+              <double>-86400.000000000000000</double>
+             </property>
+             <property name="maximum">
+              <double>86400.000000000000000</double>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="3">
+            <widget class="QSpinBox" name="config_diff_cannyThresold2">
+             <property name="maximum">
+              <number>255</number>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="3">
+            <widget class="QDoubleSpinBox" name="config_diff_diffThresold">
              <property name="maximum">
               <double>100.000000000000000</double>
              </property>
+             <property name="singleStep">
+              <double>0.050000000000000</double>
+             </property>
              <property name="value">
-              <double>98.000000000000000</double>
+              <double>0.200000000000000</double>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QSpinBox" name="config_diff_cannyThresold1">
+             <property name="maximum">
+              <number>255</number>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="2">
+            <widget class="QLabel" name="label_diff_diffThresold">
+             <property name="text">
+              <string>差异值</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="2">
+            <widget class="QLabel" name="label_diff_cannyThresold2">
+             <property name="text">
+              <string>边缘阈值2</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QGroupBox" name="groupBox_3">
+          <property name="title">
+           <string>调试设置</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_4">
+           <item row="0" column="0">
+            <widget class="QCheckBox" name="config_show_image">
+             <property name="text">
+              <string>预览图像</string>
              </property>
             </widget>
            </item>
@@ -346,31 +439,22 @@
      </widget>
     </item>
     <item>
-     <widget class="QGroupBox" name="groupBox">
-      <property name="title">
-       <string>状态</string>
-      </property>
-      <layout class="QVBoxLayout" name="verticalLayout_7">
-       <item>
-        <layout class="QVBoxLayout" name="workingStatus">
-         <item>
-          <widget class="QLabel" name="currentFileLabel">
-           <property name="text">
-            <string>Idle</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QProgressBar" name="progressBar">
-           <property name="value">
-            <number>0</number>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
-      </layout>
-     </widget>
+     <layout class="QVBoxLayout" name="workingStatus">
+      <item>
+       <widget class="QLabel" name="currentFileLabel">
+        <property name="text">
+         <string>Idle</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QProgressBar" name="progressBar">
+        <property name="value">
+         <number>0</number>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
    </layout>
   </widget>
