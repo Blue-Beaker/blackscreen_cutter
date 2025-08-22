@@ -282,8 +282,10 @@ class App(QtWidgets.QMainWindow):
             files=dialog.selectedFiles()
             for file in files:
                 self.addFile(file)
-    def pickSingleFile(self,format=""):
+    def pickSingleFile(self,format="",title:str|None=None):
         dialog=QtWidgets.QFileDialog()
+        if title:
+            dialog.setWindowTitle(title)
         dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFile)
         dialog.setNameFilters([format,"All Files(*)"])
         if dialog.exec_():
@@ -311,40 +313,33 @@ class App(QtWidgets.QMainWindow):
         if not data:
             return
         files=data.text().split("\n")
+        if(files.__len__()==0):
+            return
+        if(files[-1].__len__()==0):
+            files.pop(files.__len__()-1)
+            
         tabIndex=self.tabWidget.currentIndex()
         if(tabIndex==0):
             for line in files:
                 if line.startswith("file://"):
                     self.addFile(line[7:])
         elif(tabIndex==1):
-            videoPath=None
-            subtitlePath=None
             for line in files:
-                if line.endswith(".srt"):
-                    subtitlePath=line[7:]
-                else:
-                    videoPath=line[7:]
-                        
-            if(videoPath==None and subtitlePath!=None):
-                if(os.path.exists(subtitlePath.removesuffix(".srt"))):
-                    videoPath=subtitlePath.removesuffix(".srt")
-                else:
-                    videoPath=self.pickSingleFile("Video(*.mkv *.mp4 *.flv)")
-                
-            elif(subtitlePath==None and videoPath!=None):
-                if(os.path.exists(videoPath+".srt")):
-                    subtitlePath=videoPath+".srt"
-                else:
-                    subtitlePath=self.pickSingleFile("Subtitle(*.srt)")
-            if videoPath==None or subtitlePath==None:
-                return
-                        
-            inputFileItem=InputFileItemDualInputs(filePath=videoPath,file2Path=subtitlePath,config=self.config)
-            # self.listInputFiles.addItem(inputFileItem)
-            self.boxInputFiles_2.addWidget(inputFileItem)
+                self.addVideoFileToTab2(line[7:])
         elif(tabIndex==3):
             self.config.load(files[0][7:])
             self.postConfigLoad()
+            
+    def addVideoFileToTab2(self,videoPath:str):
+        if(os.path.exists(videoPath+".srt")):
+            subtitlePath=videoPath+".srt"
+        else:
+            subtitlePath=self.pickSingleFile("Subtitle(*.srt)",f"为{videoPath}导入.srt文件")
+        if not subtitlePath:
+            return
+        inputFileItem=InputFileItemDualInputs(filePath=videoPath,file2Path=subtitlePath,config=self.config)
+        # self.listInputFiles.addItem(inputFileItem)
+        self.boxInputFiles_2.addWidget(inputFileItem)
         
     
     def addFile(self,filePath:str):
