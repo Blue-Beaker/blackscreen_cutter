@@ -89,7 +89,8 @@ class DifferentialChecker:
                 # print(f"difference={difference}")
                 if(difference>self.thresold):
                     self.lastFrameImage=frame
-                    self.outputSections.append(Section(section.start,section.end,f"#{self.currentIndex},diff={difference:.4f}"))
+                    lastSection=self.sections[self.currentIndex-1]
+                    self.outputSections.append(Section(lastSection.start,lastSection.end,f"#{self.currentIndex-1},diff={difference:.4f}"))
                     
                     self.print(f"difference={difference}")
                     self.print(f"Differ {self.outputSections.__len__()} found at {to_hhmmssms_time(round(frameToCompareIndex*1000/self.fps))}, frameIndex={frameToCompareIndex}")
@@ -156,7 +157,7 @@ class DifferentialChecker:
         subtitleId=0
         lines:list[str]=[]
         for section in self.outputSections:
-            lines.extend(section.makeLines(subtitleId,f'#{subtitleId}'))
+            lines.extend(section.makeLines(subtitleId))
             subtitleId=subtitleId+1
         outputFile=self.videoFile+"_diff.srt"
         with open(outputFile,"w") as f:
