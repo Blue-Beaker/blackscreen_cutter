@@ -60,28 +60,29 @@ class DifferentialChecker:
         while (not self.finished and not self.halted and self.currentIndex<self.sections.__len__() and self.cap.isOpened()):
             section=self.sections[self.currentIndex]
             sectionStartTime=(section.start/1000)+self.offset
-            sectionStartFrameIndex=round(sectionStartTime*self.fps)
+            frameToCompareIndex=round(sectionStartTime*self.fps)
             
             # print(f"{self.fps},time={sectionStartTime},frames={sectionStartFrameIndex}")
-            self.seekToFrame(sectionStartFrameIndex)
+            self.seekToFrame(frameToCompareIndex)
             
             frameFound=False
             
             frame:npt.NDArray
-            while not frameFound:
-                ret, frame = self.cap.read()
-                if(not ret):
-                    self.finished=True
-                    self.estimate()
-                    self.update()
-                    continue
-            
-                frame=self.config.crop(frame)
-                frame=cv2.resize(frame, (320,180), fx = 0, fy = 0,
-                                interpolation = cv2.INTER_LINEAR)
-                if(self.checkDarkFrame(frame)>25):
-                    frameFound=True
-                sectionStartFrameIndex=sectionStartFrameIndex+1
+            # while not frameFound:
+            ret, frame = self.cap.read()
+            if(not ret):
+                self.finished=True
+                self.estimate()
+                self.update()
+                continue
+        
+            frame=self.config.crop(frame)
+            frame=cv2.resize(frame, (320,180), fx = 0, fy = 0,
+                            interpolation = cv2.INTER_LINEAR)
+            #     if(self.checkDarkFrame(frame)>25):
+            #         frameFound=True
+            #         continue
+            #     frameToCompareIndex=frameToCompareIndex+1
             
             if(self.currentIndex!=0):
                 difference=self.compareFrames(frame1=frame,frame2=self.lastFrameImage)
@@ -91,7 +92,7 @@ class DifferentialChecker:
                     self.outputSections.append(Section(section.start,section.end,f"#{self.currentIndex},diff={difference:.4f}"))
                     
                     self.print(f"difference={difference}")
-                    self.print(f"Differ {self.outputSections.__len__()} found at {to_hhmmssms_time(round(sectionStartFrameIndex*1000/self.fps))}, frameIndex={sectionStartFrameIndex}")
+                    self.print(f"Differ {self.outputSections.__len__()} found at {to_hhmmssms_time(round(frameToCompareIndex*1000/self.fps))}, frameIndex={frameToCompareIndex}")
             
             self.lastFrameImage=frame
             self.estimate()
