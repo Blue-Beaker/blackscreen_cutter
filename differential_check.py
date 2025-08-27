@@ -123,9 +123,9 @@ class DifferentialChecker:
         # difference = cv2.subtract(difference_raw,color)
         
         difference:np.ndarray
-        ret2,difference = cv2.threshold(difference_raw,self.config.diffSubtract ,255, cv2.THRESH_BINARY)
+        ret2,difference = cv2.threshold(difference_raw,self.config.diffSubtract ,255, cv2.THRESH_TOZERO)
         
-        difference=cv2.multiply(difference,difference_raw,scale=1/256)
+        # difference=cv2.multiply(difference,difference_raw,scale=1/256)
         
         if(self.config.SHOW):
             frames=np.vstack([frame1,frame2])
