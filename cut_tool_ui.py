@@ -32,7 +32,8 @@ def dump(object:QObject):
 
 class InputFileItem(QWidget):
     def __init__(self,filePath:str,config:CutterConfig=CutterConfig()):
-        super(QWidget,self).__init__()
+        # super(QWidget,self).__init__()
+        super().__init__()
         self.filePath=filePath
         self.completed=False
         self.config=config
@@ -59,6 +60,7 @@ class InputFileItem(QWidget):
         
     def setDisabled(self,disabled:bool):
         self.disabled=disabled
+        QWidget.setDisabled(self,disabled)
         
     def remove(self):
         if self.disabled:
@@ -176,6 +178,7 @@ class WorkerBlackscreenDetection(Worker):
                 
 class WorkerDifferentialDetection(Worker):
     cutter:DifferentialChecker|None=None
+    finishedFiles:int=0
     def __init__(self,queuedFiles:list[InputFileItemDualInputs]):
         super().__init__()
         self.queuedFiles=queuedFiles.copy()
@@ -184,6 +187,8 @@ class WorkerDifferentialDetection(Worker):
             if self.halted:
                 return
             self.convertSingle(item)
+            self.finishedFiles=self.finishedFiles+1
+            
     def onUpdate(self,cutter:DifferentialChecker):
         if(self.isFinished):
             self.finished.emit()
@@ -206,14 +211,15 @@ class WorkerDifferentialDetection(Worker):
         return self.cutter != None
     @property
     def isFinished(self):
-        return self.cutter!=None and self.cutter.finished
+        return self.finishedFiles>=self.queuedFiles.__len__()
     @property
     def isHalted(self):
-        return self.cutter!=None and self.cutter.halted
+        return self.halted or self.cutter!=None and self.cutter.halted
     
     def halt(self):
         if self.cutter:
             self.cutter.halt()
+        self.halted=True
         
 
 class App(QtWidgets.QMainWindow):
@@ -275,17 +281,23 @@ class App(QtWidgets.QMainWindow):
         self.loadConfig()
         # dump(self)
                 
-    def pickFiles(self,event):
-        dialog=QtWidgets.QFileDialog()
+    # def pickFiles(self,event):
+    #     dialog=QtWidgets.QFileDialog()
+    def pickFiles(self, checked: bool = False):
+        # 指定 parent，禁用 native dialog（在某些 Linux 环境会导致卡死）
+        dialog = QtWidgets.QFileDialog(self)
+        dialog.setOption(QtWidgets.QFileDialog.Option.DontUseNativeDialog, True)
         dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFiles)
         dialog.setNameFilters(["Video(*.mkv *.mp4 *.flv)","All Files(*)"])
         if dialog.exec_():
             files=dialog.selectedFiles()
+        if files:
             for file in files:
                 self.addFile(file)
                 
     def pickFilesForTab2(self,event):
-        dialog=QtWidgets.QFileDialog()
+        dialog=QtWidgets.QFileDialog(self)
+        dialog.setOption(QtWidgets.QFileDialog.Option.DontUseNativeDialog, True)
         dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFiles)
         dialog.setNameFilters(["Video(*.mkv *.mp4 *.flv)","All Files(*)"])
         if dialog.exec_():
@@ -368,12 +380,8 @@ class App(QtWidgets.QMainWindow):
                 widget.setDisabled(True)
                 if not widget.completed:
                     self.queuedFiles.append(widget)
-        self.buttonStart.setDisabled(True)
-        self.buttonStop.setDisabled(False)
-        self.buttonStart_2.setDisabled(True)
-        self.buttonStop_2.setDisabled(False)
         
-        self.inputThreads.setDisabled(True)
+        self.setButtonStates(True,False,False)
         
         if self.worker:
             worker=self.worker
@@ -404,12 +412,7 @@ class App(QtWidgets.QMainWindow):
                 if not widget.completed:
                     self.queuedFiles.append(widget)
                     
-        self.buttonStart.setDisabled(True)
-        self.buttonStop.setDisabled(False)
-        self.buttonStart_2.setDisabled(True)
-        self.buttonStop_2.setDisabled(False)
-        
-        self.inputThreads.setDisabled(True)
+        self.setButtonStates(True,False,False)
         
         if self.worker:
             worker=self.worker
@@ -429,6 +432,18 @@ class App(QtWidgets.QMainWindow):
         self.worker.log.connect(self.showLog)
         
         self.thread.start()
+        
+    def setButtonStates(self,started:bool,finished:bool,halted:bool):
+        working=started and not (finished or halted)
+        self.inputThreads.setDisabled(working)
+        
+        self.buttonAddFile.setDisabled(working)
+        self.buttonStart.setDisabled(working)
+        self.buttonStop.setDisabled(not working)
+        
+        self.buttonAddFile_2.setDisabled(working)
+        self.buttonStart_2.setDisabled(working)
+        self.buttonStop_2.setDisabled(not working)
         
                 
     def showLog(self,line:str):    
@@ -453,11 +468,8 @@ class App(QtWidgets.QMainWindow):
             
     def onFinished(self):
         try:
-            self.buttonStart.setDisabled(False)
-            self.buttonStop.setDisabled(True)
-            self.inputThreads.setDisabled(False)
-            self.buttonStart_2.setDisabled(False)
-            self.buttonStop_2.setDisabled(True)
+            
+            self.setButtonStates(False,True,False)
             
             for widget in getLayoutWidgets(self.boxInputFiles):
                 if(hasattr(widget,"setDisabled")):
@@ -466,6 +478,12 @@ class App(QtWidgets.QMainWindow):
                 if(hasattr(widget,"setDisabled")):
                     widget.setDisabled(False)
             self.queuedFiles.clear()
+            
+            if self.thread:
+                self.thread.quit()
+                self.thread.wait()
+                self.thread=None
+            self.worker=None
         except:
             traceback.print_exc()
                 
