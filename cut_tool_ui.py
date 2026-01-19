@@ -13,9 +13,13 @@ import numpy as np
 import json
 from threading import Thread
 
-from PyQt5 import QtWidgets,QtGui,QtCore,uic
-from PyQt5.QtCore import Qt,QThread,QObject,pyqtSignal
-from PyQt5.QtWidgets import QApplication,QPushButton,QLineEdit,QLabel,QListWidget,QProgressBar,QSpinBox,QListWidgetItem,QStatusBar,QVBoxLayout,QWidget,QGridLayout,QBoxLayout,QToolButton,QWidgetItem,QTextEdit,QDoubleSpinBox,QTabWidget,QCheckBox
+from PyQt6 import QtWidgets,QtGui,QtCore,uic
+# sudo apt install pyqt6-dev-tools
+from PyQt6.QtCore import Qt,QThread,QObject,pyqtSignal
+from PyQt6.QtWidgets import QApplication,QPushButton,QLineEdit,QLabel,QListWidget,QProgressBar,QSpinBox,QListWidgetItem,QStatusBar,QVBoxLayout,QWidget,QGridLayout,QBoxLayout,QToolButton,QWidgetItem,QTextEdit,QDoubleSpinBox,QTabWidget,QCheckBox
+# from PyQt5 import QtWidgets,QtGui,QtCore,uic
+# from PyQt5.QtCore import Qt,QThread,QObject,pyqtSignal
+# from PyQt5.QtWidgets import QApplication,QPushButton,QLineEdit,QLabel,QListWidget,QProgressBar,QSpinBox,QListWidgetItem,QStatusBar,QVBoxLayout,QWidget,QGridLayout,QBoxLayout,QToolButton,QWidgetItem,QTextEdit,QDoubleSpinBox,QTabWidget,QCheckBox
 
 from differential_check import DifferentialChecker
 from utils import CutterConfig, parse_srt
@@ -289,9 +293,8 @@ class App(QtWidgets.QMainWindow):
         dialog.setOption(QtWidgets.QFileDialog.Option.DontUseNativeDialog, True)
         dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFiles)
         dialog.setNameFilters(["Video(*.mkv *.mp4 *.flv)","All Files(*)"])
-        if dialog.exec_():
+        if dialog.exec():
             files=dialog.selectedFiles()
-        if files:
             for file in files:
                 self.addFile(file)
                 
@@ -300,7 +303,7 @@ class App(QtWidgets.QMainWindow):
         dialog.setOption(QtWidgets.QFileDialog.Option.DontUseNativeDialog, True)
         dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFiles)
         dialog.setNameFilters(["Video(*.mkv *.mp4 *.flv)","All Files(*)"])
-        if dialog.exec_():
+        if dialog.exec():
             files=dialog.selectedFiles()
             for file in files:
                 self.addVideoFileToTab2(file)
@@ -311,7 +314,7 @@ class App(QtWidgets.QMainWindow):
             dialog.setWindowTitle(title)
         dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFile)
         dialog.setNameFilters([format,"All Files(*)"])
-        if dialog.exec_():
+        if dialog.exec():
             selected = dialog.selectedFiles()
             return selected[0] if selected.__len__()>0 else None
         return None
